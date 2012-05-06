@@ -1,5 +1,6 @@
 package ffi
 
+// #include <stdlib.h>
 // #include "ffi.h"
 // typedef void (*_go_ffi_fctptr_t)(void);
 import "C"
@@ -130,8 +131,67 @@ func (cif *Cif) Call(fct FctPtr, args ...interface{}) (reflect.Value, error) {
 	if nargs > 0 {
 		cargs := make([]unsafe.Pointer, nargs)
 		for i, _ := range args {
+			var carg unsafe.Pointer
 			//fmt.Printf("[%d]: (%v)\n", i, args[i])
-			cargs[i] = to_voidptr(args[i])
+			t := reflect.TypeOf(args[i])
+			rv := reflect.ValueOf(args[i])
+			switch t.Kind() {
+			case reflect.String:
+				cstr := C.CString(args[i].(string))
+				defer C.free(unsafe.Pointer(cstr))
+				carg = unsafe.Pointer(&cstr)
+			case reflect.Ptr:
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Float32:
+				vv := args[i].(float32)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Float64:
+				vv := args[i].(float64)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Int:
+				vv := args[i].(int)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Int8:
+				vv := args[i].(int8)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Int16:
+				vv := args[i].(int16)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Int32:
+				vv := args[i].(int32)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Int64:
+				vv := args[i].(int64)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Uint:
+				vv := args[i].(uint)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Uint8:
+				vv := args[i].(uint8)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Uint16:
+				vv := args[i].(uint16)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Uint32:
+				vv := args[i].(uint32)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			case reflect.Uint64:
+				vv := args[i].(uint64)
+				rv = reflect.ValueOf(&vv)
+				carg = unsafe.Pointer(rv.Elem().UnsafeAddr())
+			}
+			cargs[i] = carg
 		}
 		c_args = &cargs[0]
 	}
@@ -143,16 +203,43 @@ func (cif *Cif) Call(fct FctPtr, args ...interface{}) (reflect.Value, error) {
 	return out.Elem(), nil
 }
 
+type go_void struct {}
+
 func rtype_from_ffi(t *C.ffi_type) reflect.Type {
 	switch t {
+	case &C.ffi_type_void:
+		return reflect.TypeOf(go_void{})
 	case &C.ffi_type_uint:
 		return reflect.TypeOf(uint(0))
 	case &C.ffi_type_sint:
 		return reflect.TypeOf(int(0))
+	case &C.ffi_type_uint8:
+		return reflect.TypeOf(uint8(0))
+	case &C.ffi_type_sint8:
+		return reflect.TypeOf(int8(0))
+	case &C.ffi_type_uint16:
+		return reflect.TypeOf(uint16(0))
+	case &C.ffi_type_sint16:
+		return reflect.TypeOf(int16(0))
+	case &C.ffi_type_uint32:
+		return reflect.TypeOf(uint32(0))
+	case &C.ffi_type_sint32:
+		return reflect.TypeOf(int32(0))
+	case &C.ffi_type_uint64:
+		return reflect.TypeOf(uint64(0))
+	case &C.ffi_type_sint64:
+		return reflect.TypeOf(int64(0))
+	case &C.ffi_type_ulong:
+		return reflect.TypeOf(uint64(0))
+	case &C.ffi_type_slong:
+		return reflect.TypeOf(int64(0))
 	case &C.ffi_type_float:
 		return reflect.TypeOf(float32(0))
 	case &C.ffi_type_double:
 		return reflect.TypeOf(float64(0))
+	case &C.ffi_type_longdouble:
+		// FIXME!!
+		return reflect.TypeOf(complex128(0))
 	}
 	panic("unreachable")
 }
@@ -180,6 +267,10 @@ func to_voidptr(v interface{}) unsafe.Pointer {
 		cstr := C.CString(rv.String())
 		return unsafe.Pointer(&cstr)
 	case reflect.Ptr:
+		return unsafe.Pointer(rv.Elem().UnsafeAddr())
+	case reflect.Float32:
+		vv := rv.Float()
+		rv = reflect.ValueOf(&vv)
 		return unsafe.Pointer(rv.Elem().UnsafeAddr())
 	case reflect.Float64:
 		vv := rv.Float()
