@@ -42,6 +42,7 @@ Limitations/TODO
 
 - it would be handy to also handle structs
 
+- better handling of types with no direct equivalent in go (short,void,...)
 
 Documentation
 -------------

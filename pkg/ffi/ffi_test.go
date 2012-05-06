@@ -14,7 +14,7 @@ type info struct {
 	res float64 // expected value
 }
 
-func TestFFIMath(t *testing.T) {
+func TestFFIMathf(t *testing.T) {
 	lib, err := ffi.NewLibrary(libm_name)
 
 	if err != nil {
@@ -36,6 +36,38 @@ func TestFFIMath(t *testing.T) {
 		out := f(info.arg).Float()
 		if math.Abs(out-info.res) > 1e-16 {
 			t.Errorf("expected [%v], got [%v] (fct=%v(%v))", info.res, out, info.fct, info.arg)
+		}
+
+	}
+
+	err = lib.Close()
+	if err != nil {
+		t.Errorf("error closing [%s]: %v", libm_name, err)
+	}
+}
+
+func TestFFIMathi(t *testing.T) {
+	lib, err := ffi.NewLibrary(libm_name)
+
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	f, err := lib.Fct("abs", ffi.Int, []ffi.Type{ffi.Int})
+	if err != nil {
+		t.Errorf("could not locate function [abs]: %v", err)
+	}
+	{
+		out := f(10).Int()
+		if out != 10 {
+			t.Errorf("expected [10], got [%v] (fct=abs(10))", out)
+		}
+
+	}
+	{
+		out := f(-10).Int()
+		if out != 10 {
+			t.Errorf("expected [10], got [%v] (fct=abs(-10))", out)
 		}
 
 	}

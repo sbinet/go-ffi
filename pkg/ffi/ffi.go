@@ -40,21 +40,21 @@ type Type struct {
 var (
 	Void       = Type{&C.ffi_type_void}
 	Uchar      = Type{&C.ffi_type_uchar}
-	Schar      = Type{&C.ffi_type_schar}
+	Char       = Type{&C.ffi_type_schar}
 	Ushort     = Type{&C.ffi_type_ushort}
-	Sshort     = Type{&C.ffi_type_sshort}
+	Short      = Type{&C.ffi_type_sshort}
 	Uint       = Type{&C.ffi_type_uint}
-	Sint       = Type{&C.ffi_type_sint}
+	Int        = Type{&C.ffi_type_sint}
 	Ulong      = Type{&C.ffi_type_ulong}
-	Slong      = Type{&C.ffi_type_slong}
+	Long       = Type{&C.ffi_type_slong}
 	Uint8      = Type{&C.ffi_type_uint8}
-	Sint8      = Type{&C.ffi_type_sint8}
+	Int8       = Type{&C.ffi_type_sint8}
 	Uint16     = Type{&C.ffi_type_uint16}
-	Sint16     = Type{&C.ffi_type_sint16}
+	Int16      = Type{&C.ffi_type_sint16}
 	Uint32     = Type{&C.ffi_type_uint32}
-	Sint32     = Type{&C.ffi_type_sint32}
+	Int32      = Type{&C.ffi_type_sint32}
 	Uint64     = Type{&C.ffi_type_uint64}
-	Sint64     = Type{&C.ffi_type_sint64}
+	Int64      = Type{&C.ffi_type_sint64}
 	Float      = Type{&C.ffi_type_float}
 	Double     = Type{&C.ffi_type_double}
 	LongDouble = Type{&C.ffi_type_longdouble}
@@ -203,7 +203,7 @@ func (cif *Cif) Call(fct FctPtr, args ...interface{}) (reflect.Value, error) {
 	return out.Elem(), nil
 }
 
-type go_void struct {}
+type go_void struct{}
 
 func rtype_from_ffi(t *C.ffi_type) reflect.Type {
 	switch t {
