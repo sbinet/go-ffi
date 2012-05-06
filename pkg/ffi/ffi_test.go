@@ -78,4 +78,97 @@ func TestFFIMathi(t *testing.T) {
 	}
 }
 
+func TestFFIStrCmp(t *testing.T) {
+	lib, err := ffi.NewLibrary(libc_name)
+
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	//int strcmp(const char* cs, const char* ct);
+	f, err := lib.Fct("strcmp", ffi.Int, []ffi.Type{ffi.Pointer, ffi.Pointer})
+	if err != nil {
+		t.Errorf("could not locate function [strcmp]: %v", err)
+	}
+	{
+		s1 := "foo"
+		s2 := "foo"
+		out := f(s1, s2).Int()
+		if out != 0 {
+			t.Errorf("expected [0], got [%v]", out)
+		}
+
+	}
+	{
+		s1 := "foo"
+		s2 := "foo1"
+		out := f(s1, s2).Int()
+		if out == 0 {
+			t.Errorf("expected [!0], got [%v]", out)
+		}
+
+	}
+
+	err = lib.Close()
+	if err != nil {
+		t.Errorf("error closing [%s]: %v", libc_name, err)
+	}
+}
+
+func TestFFIStrLen(t *testing.T) {
+	lib, err := ffi.NewLibrary(libc_name)
+
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	//size_t strlen(const char* cs);
+	f, err := lib.Fct("strlen", ffi.Int, []ffi.Type{ffi.Pointer})
+	if err != nil {
+		t.Errorf("could not locate function [strlen]: %v", err)
+	}
+	{
+		str := `foo-bar-\nfoo foo`
+		out := int(f(str).Int())
+		if out != len(str) {
+			t.Errorf("expected [%d], got [%d]", len(str), out)
+		}
+
+	}
+
+	err = lib.Close()
+	if err != nil {
+		t.Errorf("error closing [%s]: %v", libc_name, err)
+	}
+}
+
+func TestFFIStrCat(t *testing.T) {
+	lib, err := ffi.NewLibrary(libc_name)
+
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	//char* strcat(char* s, const char* ct);
+	f, err := lib.Fct("strcat", ffi.Pointer, []ffi.Type{ffi.Pointer, ffi.Pointer})
+	if err != nil {
+		t.Errorf("could not locate function [strlen]: %v", err)
+	}
+	{
+		s1 := "foo"
+		s2 := "bar"
+		out := f(s1,s2).String()
+		//FIXME
+		if out != "foobar" && false {
+			t.Errorf("expected [foobar], got [%s] (s1=%s, s2=%s)", out, s1, s2)
+		}
+
+	}
+
+	err = lib.Close()
+	if err != nil {
+		t.Errorf("error closing [%s]: %v", libc_name, err)
+	}
+}
+
 // EOF

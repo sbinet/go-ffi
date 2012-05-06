@@ -209,6 +209,8 @@ func rtype_from_ffi(t *C.ffi_type) reflect.Type {
 	switch t {
 	case &C.ffi_type_void:
 		return reflect.TypeOf(go_void{})
+	case &C.ffi_type_pointer:
+		return reflect.TypeOf(uintptr(0))
 	case &C.ffi_type_uint:
 		return reflect.TypeOf(uint(0))
 	case &C.ffi_type_sint:
@@ -252,33 +254,6 @@ func rtype_from_ffi(t *C.ffi_type) reflect.Type {
 // Closure models a ffi closure
 type Closure struct {
 	c C.ffi_closure
-}
-
-// utils ---
-
-// to_voidptr wraps an interface value into an unsafe.Pointer
-func to_voidptr(v interface{}) unsafe.Pointer {
-	t := reflect.TypeOf(v)
-	rv := reflect.ValueOf(v)
-	//println("-->",t.Kind().String())
-	switch t.Kind() {
-	case reflect.String:
-		//fixme: memleak
-		cstr := C.CString(rv.String())
-		return unsafe.Pointer(&cstr)
-	case reflect.Ptr:
-		return unsafe.Pointer(rv.Elem().UnsafeAddr())
-	case reflect.Float32:
-		vv := rv.Float()
-		rv = reflect.ValueOf(&vv)
-		return unsafe.Pointer(rv.Elem().UnsafeAddr())
-	case reflect.Float64:
-		vv := rv.Float()
-		rv = reflect.ValueOf(&vv)
-		return unsafe.Pointer(rv.Elem().UnsafeAddr())
-	}
-	panic("to-voidptr: unreachable [" + t.Kind().String() + "]")
-	return nil
 }
 
 // Library is a dl-opened library holding the corresponding dl.Handle
