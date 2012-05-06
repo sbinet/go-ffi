@@ -10,8 +10,8 @@ import (
 
 type info struct {
 	fct string // fct name
-	arg float32
-	res float32 // expected value
+	arg float64
+	res float64 // expected value
 }
 
 func TestFFIMath(t *testing.T) {
@@ -20,19 +20,24 @@ func TestFFIMath(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	
+
 	tests := []info{
-		{"cos", 0., 1.},
-		{"cos", math.Pi/2., 0.},
+		{"cos", 0., math.Cos(0.)},
+		{"cos", math.Pi / 2., math.Cos(math.Pi / 2.)},
+		{"sin", 0., math.Sin(0.)},
+		{"sin", math.Pi / 2., math.Sin(math.Pi / 2.)},
 	}
 
-	for _,info := range tests {
-		f, err := lib.Fct(info.fct)
+	for _, info := range tests {
+		f, err := lib.Fct(info.fct, ffi.Double, []ffi.Type{ffi.Double})
 		if err != nil {
 			t.Errorf("could not locate function [%s]: %v", info.fct, err)
 		}
-		f(info.arg)
-		
+		out := f(info.arg).Float()
+		if math.Abs(out-info.res) > 1e-16 {
+			t.Errorf("expected [%v], got [%v] (fct=%v(%v))", info.res, out, info.fct, info.arg)
+		}
+
 	}
 
 	err = lib.Close()
@@ -40,6 +45,5 @@ func TestFFIMath(t *testing.T) {
 		t.Errorf("error closing [%s]: %v", libm_name, err)
 	}
 }
-
 
 // EOF
