@@ -18,7 +18,7 @@ const (
 	Local Flags = C.RTLD_LOCAL
 	NoLoad Flags = C.RTLD_NOLOAD
 	NoDelete Flags = C.RTLD_NODELETE
-	First Flags = C.RTLD_FIRST
+	// First Flags = C.RTLD_FIRST
 )
 
 type Handle struct {
