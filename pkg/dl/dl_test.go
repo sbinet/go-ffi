@@ -3,7 +3,7 @@ package dl_test
 import (
 	"testing"
 
-	"bitbucket.org/binet/go-ffi/pkg/dl"
+	"github.com/sbinet/go-ffi/pkg/dl"
 )
 
 func TestDlOpenLibc(t *testing.T) {

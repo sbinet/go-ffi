@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	"bitbucket.org/binet/go-ffi/pkg/ffi"
-	//"bitbucket.org/binet/go-ffi/pkg/dl"
+	"github.com/sbinet/go-ffi/pkg/ffi"
+	//"github.com/sbinet/go-ffi/pkg/dl"
 )
 
 type info struct {

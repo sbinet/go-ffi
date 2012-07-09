@@ -8,7 +8,7 @@ Installation
 
 ``ffi`` is go-get-able::
 
-  $ go get bitbucket.org/binet/go-ffi/pkg/ffi
+  $ go get github.com/sbinet/go-ffi/pkg/ffi
 
 
 Example
@@ -47,5 +47,5 @@ Limitations/TODO
 Documentation
 -------------
 
-http://go.pkgdoc.org/bitbucket.org/binet/go-ffi/pkg/ffi
+http://go.pkgdoc.org/github.com/sbinet/go-ffi/pkg/ffi
 
