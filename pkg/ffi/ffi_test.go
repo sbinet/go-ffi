@@ -9,6 +9,12 @@ import (
 	//"github.com/sbinet/go-ffi/pkg/dl"
 )
 
+func eq(t *testing.T, ref, chk interface{}) {
+	if !reflect.DeepEqual(ref, chk) {
+		t.Errorf("expected [%v], got [%v]", ref, chk)
+	}
+}
+
 type info struct {
 	fct string // fct name
 	arg float64
@@ -169,92 +175,6 @@ func TestFFIStrCat(t *testing.T) {
 	err = lib.Close()
 	if err != nil {
 		t.Errorf("error closing [%s]: %v", libc_name, err)
-	}
-}
-
-func TestFFIBuiltinTypes(t *testing.T) {
-	for _, table := range []struct{
-		n string
-		t ffi.Type
-		rt reflect.Type
-	}{
-		{"uchar", ffi.C_uchar, reflect.TypeOf(byte(0))},
-		{"char", ffi.C_char, reflect.TypeOf(byte(0))},
-
-		{"int8", ffi.C_int8, reflect.TypeOf(int8(0))},
-		{"uint8", ffi.C_uint8, reflect.TypeOf(uint8(0))},
-		{"int16", ffi.C_int16, reflect.TypeOf(int16(0))},
-		{"uint16", ffi.C_uint16, reflect.TypeOf(uint16(0))},
-		{"int32", ffi.C_int32, reflect.TypeOf(int32(0))},
-		{"uint32", ffi.C_uint32, reflect.TypeOf(uint32(0))},
-		{"int64", ffi.C_int64, reflect.TypeOf(int64(0))},
-		{"uint64", ffi.C_uint64, reflect.TypeOf(uint64(0))},
-
-		{"float", ffi.C_float, reflect.TypeOf(float32(0))},
-		{"double", ffi.C_double, reflect.TypeOf(float64(0))},
-		//FIXME: use float128 when/if available
-		{"long double", ffi.C_longdouble, reflect.TypeOf(complex128(0))},
-
-		{"pointer", ffi.C_pointer, reflect.TypeOf((*int)(nil))},
-	} {
-		if table.n != table.t.Name() {
-			t.Errorf("expected [%s], got [%s]", table.n, table.t.Name())
-		}
-		if table.t.Size() != table.rt.Size() {
-			t.Errorf("expected [%s], got [%s]", table.t.Size(), table.rt.Size())
-		}
-	}
-}
-
-func TestFFINewType(t *testing.T) {
-
-	for _, table := range []struct{
-		name string
-		fields []ffi.Field
-		size uintptr
-		offsets []uintptr
-	}{
-		{"struct_0", 
-			[]ffi.Field{{"a", ffi.C_int}}, 
-			ffi.C_int.Size(),
-			[]uintptr{0},
-		},
-		{"struct_1", 
-			[]ffi.Field{
-				{"a", ffi.C_int}, 
-				{"b", ffi.C_int},
-			}, 
-			ffi.C_int.Size()+ffi.C_int.Size(),
-			[]uintptr{0, ffi.C_int.Size()},
-		},
-		{"struct_2",
-			[]ffi.Field{
-				{"F1", ffi.C_uint8},
-				{"F2", ffi.C_int16},
-				{"F3", ffi.C_int32},
-				{"F4", ffi.C_uint8},
-			},
-			12,
-			[]uintptr{0, 2, 4, 8},
-		},
-	} {
-		typ, err := ffi.NewType(table.name, table.fields)
-		if err != nil {
-			t.Errorf(err.Error())
-		}
-		if typ.Name() != table.name {
-			t.Errorf("expected [%s], got [%s]", table.name, typ.Name())
-		}
-		if typ.Size() != table.size {
-			t.Errorf("expected size=%v, got [%v]", table.size, typ.Size())
-		}
-		for i := 0; i < typ.NumField(); i++ {
-			if typ.Field(i).Offset != table.offsets[i] {
-				t.Errorf("expected offset=%v, got [%v]",
-					table.offsets[i],
-					typ.Field(i).Offset)
-			}
-		}
 	}
 }
 
