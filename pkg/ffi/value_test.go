@@ -407,7 +407,6 @@ func TestBinaryIO(t *testing.T) {
 	}
 
 	{
-
 		const val = 42
 		arr10, err := ffi.NewArrayType(10, ffi.C_int32)
 		if err != nil {
@@ -437,6 +436,61 @@ func TestBinaryIO(t *testing.T) {
 
 		values := []interface{}{
 			uint16(val),
+			// note we use an array
+			[10]int32{val, val, val, val, val,
+				val, val, val, val, val},
+			int32(val),
+			uint16(val),
+		}
+
+		for i, value := range values {
+			field := cval.Field(i)
+			w := ffi.NewWriter(field)
+			err = binary.Write(w, order, value)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+		}
+		// test values back
+		eq(t, uint64(val), cval.Field(0).Uint())
+		for i := 0; i < arr10.Len(); i++ {
+			eq(t, int64(val), cval.Field(1).Index(i).Int())
+		}
+		eq(t, int64(val), cval.Field(2).Int())
+		eq(t, uint64(val), cval.Field(3).Uint())
+	}
+
+	{
+		const val = 42
+		arr10, err := ffi.NewArrayType(10, ffi.C_int32)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+
+		ctyp, err := ffi.NewStructType(
+			"struct_ssv",
+			[]ffi.Field{
+			{"F1", ffi.C_uint16},
+			{"F2", arr10},
+			{"F3", ffi.C_int32},
+			{"F4", ffi.C_uint16},
+		})
+		eq(t, ffi.Struct, ctyp.Kind())
+		eq(t, 4, ctyp.NumField())
+
+		cval := ffi.New(ctyp)
+		eq(t, ctyp.Kind(), cval.Kind())
+		eq(t, ctyp.NumField(), cval.NumField())
+		eq(t, uint64(0), cval.Field(0).Uint())
+		for i := 0; i < arr10.Len(); i++ {
+			eq(t, int64(0), cval.Field(1).Index(i).Int())
+		}
+		eq(t, int64(0), cval.Field(2).Int())
+		eq(t, uint64(0), cval.Field(3).Uint())
+
+		values := []interface{}{
+			uint16(val),
+			// note we use a slice
 			[]int32{val, val, val, val, val,
 				val, val, val, val, val},
 			int32(val),
