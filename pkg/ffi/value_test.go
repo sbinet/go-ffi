@@ -421,6 +421,9 @@ func TestBinaryIO(t *testing.T) {
 			{"F3", ffi.C_int32},
 			{"F4", ffi.C_uint16},
 		})
+		if err != nil {
+			t.Errorf(err.Error())
+		}
 		eq(t, ffi.Struct, ctyp.Kind())
 		eq(t, 4, ctyp.NumField())
 
@@ -475,6 +478,9 @@ func TestBinaryIO(t *testing.T) {
 			{"F3", ffi.C_int32},
 			{"F4", ffi.C_uint16},
 		})
+		if err != nil {
+			t.Errorf(err.Error())
+		}
 		eq(t, ffi.Struct, ctyp.Kind())
 		eq(t, 4, ctyp.NumField())
 
@@ -515,4 +521,71 @@ func TestBinaryIO(t *testing.T) {
 	}
 }
 
+func TestValueOf(t *testing.T) {
+	{
+		const val = 42
+		for _,v := range []interface{}{
+			int(val),
+			int8(val),
+			int16(val),
+			int32(val),
+			int64(val),
+		}{
+			eq(t, int64(val), ffi.ValueOf(v).Int())
+		}
+	}
+
+	{
+		const val = 42
+		for _,v := range []interface{}{
+			uint(val),
+			uint8(val),
+			uint16(val),
+			uint32(val),
+			uint64(val),
+		}{
+			eq(t, uint64(val), ffi.ValueOf(v).Uint())
+		}
+	}
+	{
+		const val = 42.0
+		for _,v := range []interface{}{
+			float32(val),
+			float64(val),
+		}{
+			eq(t, float64(val), ffi.ValueOf(v).Float())
+		}
+	}
+	{
+		const val = 42
+		ctyp, err := ffi.NewStructType(
+			"struct_ints",
+			[]ffi.Field{
+			{"F1", ffi.C_int8},
+			{"F2", ffi.C_int16},
+			{"F3", ffi.C_int32},
+			{"F4", ffi.C_int64},
+		})
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		cval := ffi.New(ctyp)
+		for i := 0; i<ctyp.NumField(); i++ {
+			cval.Field(i).SetInt(int64(val))
+			eq(t, int64(val), cval.Field(i).Int())
+		}
+		gval := struct{
+			F1 int8
+			F2 int16
+			F3 int32
+			F4 int64
+		}{val+1, val+1, val+1, val+1}
+		rval := reflect.ValueOf(gval)
+		eq(t, rval.NumField(), cval.NumField())
+		for i := 0; i<ctyp.NumField(); i++ {
+			eq(t, rval.Field(i).Int()-1, cval.Field(i).Int())
+		}
+		cval = ffi.ValueOf(gval)
+	}
+}
 // EOF

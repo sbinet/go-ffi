@@ -387,6 +387,80 @@ func Indirect(v Value) Value {
 	return v.Elem()
 }
 
+// ValueOf returns a new Value initialized to the concrete value stored in
+// the interface i.
+// ValueOf(nil) returns the zero Value
+func ValueOf(i interface{}) Value {
+	if i == nil {
+		return Value{}
+	}
+	v := Value{}
+	rv := reflect.ValueOf(i)
+	rt := rv.Type()
+	switch rt.Kind() {
+	case reflect.Int:
+		v = New(C_int)
+		v.SetInt(rv.Int())
+
+	case reflect.Int8:
+		v = New(C_int8)
+		v.SetInt(rv.Int())
+
+	case reflect.Int16:
+		v = New(C_int16)
+		v.SetInt(rv.Int())
+
+	case reflect.Int32:
+		v = New(C_int32)
+		v.SetInt(rv.Int())
+
+	case reflect.Int64:
+		v = New(C_int64)
+		v.SetInt(rv.Int())
+
+	case reflect.Uint:
+		v = New(C_uint)
+		v.SetUint(rv.Uint())
+
+	case reflect.Uint8:
+		v = New(C_uint8)
+		v.SetUint(rv.Uint())
+
+	case reflect.Uint16:
+		v = New(C_uint16)
+		v.SetUint(rv.Uint())
+
+	case reflect.Uint32:
+		v = New(C_uint32)
+		v.SetUint(rv.Uint())
+
+	case reflect.Uint64:
+		v = New(C_uint64)
+		v.SetUint(rv.Uint())
+
+	case reflect.Float32:
+		v = New(C_float)
+		v.SetFloat(rv.Float())
+
+	case reflect.Float64:
+		v = New(C_double)
+		v.SetFloat(rv.Float())
+
+	case reflect.Array:
+		panic("unimplemented")
+	case reflect.Ptr:
+		panic("unimplemented")
+	case reflect.Struct:
+		panic("unimplemented")
+	case reflect.String:
+		panic("unimplemented")
+	default:
+		panic("unhandled kind [" + rt.Kind().String() + "]")
+	}
+
+	return v
+}
+
 // NewReader returns an io.Reader from a value, reading from its binary storage
 func NewReader(v Value) io.Reader {
 	return bytes.NewReader(v.Buffer())
@@ -408,4 +482,5 @@ func NewWriter(v Value) io.Writer {
 	buf := v.Buffer()
 	return &wbuffer{buf: buf, idx: 0}
 }
+
 // EOF
