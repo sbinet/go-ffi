@@ -1,6 +1,8 @@
 package ffi
 
 import (
+	"bytes"
+	"io"
 	"reflect"
 	"runtime"
 	"unsafe"
@@ -385,4 +387,25 @@ func Indirect(v Value) Value {
 	return v.Elem()
 }
 
+// NewReader returns an io.Reader from a value, reading from its binary storage
+func NewReader(v Value) io.Reader {
+	return bytes.NewReader(v.Buffer())
+}
+
+type wbuffer struct {
+	buf []byte
+	idx int
+}
+
+func (w *wbuffer) Write(p []byte) (n int, err error) {
+	n = copy(w.buf[w.idx:], p)
+	w.idx += n
+	return
+}
+
+// NewWriter returns an io.Writer from a value, writing into its binary storage
+func NewWriter(v Value) io.Writer {
+	buf := v.Buffer()
+	return &wbuffer{buf: buf, idx: 0}
+}
 // EOF

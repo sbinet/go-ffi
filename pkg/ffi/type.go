@@ -267,6 +267,20 @@ type Field struct {
 // NewStructType creates a new ffi_type describing a C-struct
 func NewStructType(name string, fields []Field) (Type, error) {
 	if t := TypeByName(name); t != nil {
+		// check the definitions are the same
+		if t.NumField() != len(fields) {
+			return nil, fmt.Errorf("ffi.NewStructType: inconsistent re-declaration of [%s]", name)
+		}
+		for i := range fields {
+			if fields[i].Name != t.Field(i).Name {
+				return nil, fmt.Errorf("ffi.NewStructType: inconsistent re-declaration of [%s] (field #%d name mismatch)", name, i)
+				
+			}
+			if fields[i].Type != t.Field(i).Type {
+				return nil, fmt.Errorf("ffi.NewStructType: inconsistent re-declaration of [%s] (field #%d type mismatch)", name, i)
+				
+			}
+		}
 		return t, nil
 	}
 	c := C.ffi_type{}

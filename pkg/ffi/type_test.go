@@ -1,6 +1,7 @@
 package ffi_test
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -99,6 +100,55 @@ func TestNewStructType(t *testing.T) {
 			eq(t, table.offsets[i], typ.Field(i).Offset)
 		}
 		eq(t, ffi.Struct, typ.Kind())
+	}
+
+	// test type mismatch
+	n := "struct_type_err"
+	st, err := ffi.NewStructType(n, []ffi.Field{{"a", ffi.C_int}})
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	{
+		// check we get the exact same instance
+		st_dup, err := ffi.NewStructType(n, []ffi.Field{{"a", ffi.C_int}})
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		if !reflect.DeepEqual(st_dup, st) {
+			t.Errorf("NewStructType is not idem-potent")
+		}
+	}
+	{
+		_, err := ffi.NewStructType(
+			n,
+			[]ffi.Field{{"a", ffi.C_int}, {"b", ffi.C_int}})
+		if err == nil {
+			t.Errorf("failed to raise an error")
+		}
+		errmsg := fmt.Sprintf("ffi.NewStructType: inconsistent re-declaration of [%s]", n)
+		if err.Error() != errmsg {
+			t.Errorf("failed to detect number of fields differ: %v", err)
+		}
+	}
+	{
+		_, err := ffi.NewStructType(n, []ffi.Field{{"b", ffi.C_int}})
+		if err == nil {
+			t.Errorf("failed to raise an error")
+		}
+		errmsg := fmt.Sprintf("ffi.NewStructType: inconsistent re-declaration of [%s] (field #0 name mismatch)", n)
+		if err.Error() != errmsg {
+			t.Errorf("failed to detect field-name mismatch: %v", err)
+		}
+	}
+	{
+		_, err := ffi.NewStructType(n, []ffi.Field{{"a", ffi.C_uint}})
+		if err == nil {
+			t.Errorf("failed to raise an error")
+		}
+		errmsg := fmt.Sprintf("ffi.NewStructType: inconsistent re-declaration of [%s] (field #0 type mismatch)", n)
+		if err.Error() != errmsg {
+			t.Errorf("failed to detect field-type mismatch: %v", err)
+		}
 	}
 }
 

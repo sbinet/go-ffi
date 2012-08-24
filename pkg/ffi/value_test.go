@@ -1,6 +1,9 @@
 package ffi_test
 
 import (
+	//"bytes"
+	"encoding/binary"
+	//"fmt"
 	"reflect"
 	"testing"
 
@@ -244,6 +247,218 @@ func TestGetSetStructValue(t *testing.T) {
 	eq(t, int64(val), cval.FieldByName("F3").Int())
 	eq(t, uint64(val), cval.FieldByName("F4").Uint())
 
+}
+
+func TestBinaryIO(t *testing.T) {
+
+	order := g_native_endian
+	{
+		const val = 42
+		for _, tt := range []struct {
+			n   string
+			t   ffi.Type
+			val interface{}
+		}{
+			{"int", ffi.C_int, int64(val)},
+			{"int8", ffi.C_int8, int64(val)},
+			{"int16", ffi.C_int16, int64(val)},
+			{"int32", ffi.C_int32, int64(val)},
+			{"int64", ffi.C_int64, int64(val)},
+		} {
+			cval := ffi.New(tt.t)
+			w := ffi.NewWriter(cval)
+			err := binary.Write(w, order, tt.val)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			eq(t, tt.val, cval.Int())
+		}
+	}
+
+	{
+		const val = 42
+		for _, tt := range []struct {
+			n   string
+			t   ffi.Type
+			val interface{}
+		}{
+			{"uint", ffi.C_uint, uint64(val)},
+			{"uint8", ffi.C_uint8, uint64(val)},
+			{"uint16", ffi.C_uint16, uint64(val)},
+			{"uint32", ffi.C_uint32, uint64(val)},
+			{"uint64", ffi.C_uint64, uint64(val)},
+		} {
+			cval := ffi.New(tt.t)
+			w := ffi.NewWriter(cval)
+			err := binary.Write(w, order, tt.val)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			eq(t, tt.val, cval.Uint())
+		}
+	}
+
+	{
+		const val = 42.0
+		for _, tt := range []struct {
+			n   string
+			t   ffi.Type
+			val interface{}
+		}{
+			{"float", ffi.C_float, float32(val)},
+			{"double", ffi.C_double, float64(val)},
+		} {
+			cval := ffi.New(tt.t)
+			w := ffi.NewWriter(cval)
+			err := binary.Write(w, order, tt.val)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			eq(t, float64(val), cval.Float())
+		}
+	}
+
+	{
+
+		const val = 42
+		ctyp, err := ffi.NewStructType(
+			"struct_uints",
+			[]ffi.Field{
+			{"F1", ffi.C_uint8},
+			{"F2", ffi.C_uint16},
+			{"F3", ffi.C_uint32},
+			{"F4", ffi.C_uint64},
+		})
+		eq(t, ffi.Struct, ctyp.Kind())
+		eq(t, 4, ctyp.NumField())
+
+		cval := ffi.New(ctyp)
+		eq(t, ctyp.Kind(), cval.Kind())
+		eq(t, ctyp.NumField(), cval.NumField())
+		for i := 0; i<ctyp.NumField(); i++ {
+			eq(t, uint64(0), cval.Field(i).Uint())
+		}
+
+		values := []interface{}{
+			uint8(val),
+			uint16(val),
+			uint32(val),
+			uint64(val),
+		}
+
+		for i := 0; i < cval.NumField(); i++ {
+			field := cval.Field(i)
+			w := ffi.NewWriter(field)
+			err = binary.Write(w, order, values[i])
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+		}
+
+		// test values back
+		eq(t, uint64(val), cval.Field(0).Uint())
+		eq(t, uint64(val), cval.Field(1).Uint())
+		eq(t, uint64(val), cval.Field(2).Uint())
+		eq(t, uint64(val), cval.Field(3).Uint())
+	}
+
+	{
+
+		const val = 42
+		ctyp, err := ffi.NewStructType(
+			"struct_ints",
+			[]ffi.Field{
+			{"F1", ffi.C_int8},
+			{"F2", ffi.C_int16},
+			{"F3", ffi.C_int32},
+			{"F4", ffi.C_int64},
+		})
+		eq(t, ffi.Struct, ctyp.Kind())
+		eq(t, 4, ctyp.NumField())
+
+		cval := ffi.New(ctyp)
+		eq(t, ctyp.Kind(), cval.Kind())
+		eq(t, ctyp.NumField(), cval.NumField())
+		for i := 0; i<ctyp.NumField(); i++ {
+			eq(t, int64(0), cval.Field(i).Int())
+		}
+
+		values := []interface{}{
+			uint8(val),
+			uint16(val),
+			uint32(val),
+			uint64(val),
+		}
+
+		for i := 0; i < cval.NumField(); i++ {
+			field := cval.Field(i)
+			w := ffi.NewWriter(field)
+			err = binary.Write(w, order, values[i])
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+		}
+
+		// test values back
+		eq(t, int64(val), cval.Field(0).Int())
+		eq(t, int64(val), cval.Field(1).Int())
+		eq(t, int64(val), cval.Field(2).Int())
+		eq(t, int64(val), cval.Field(3).Int())
+	}
+
+	{
+
+		const val = 42
+		arr10, err := ffi.NewArrayType(10, ffi.C_int32)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+
+		ctyp, err := ffi.NewStructType(
+			"struct_ssv",
+			[]ffi.Field{
+			{"F1", ffi.C_uint16},
+			{"F2", arr10},
+			{"F3", ffi.C_int32},
+			{"F4", ffi.C_uint16},
+		})
+		eq(t, ffi.Struct, ctyp.Kind())
+		eq(t, 4, ctyp.NumField())
+
+		cval := ffi.New(ctyp)
+		eq(t, ctyp.Kind(), cval.Kind())
+		eq(t, ctyp.NumField(), cval.NumField())
+		eq(t, uint64(0), cval.Field(0).Uint())
+		for i := 0; i < arr10.Len(); i++ {
+			eq(t, int64(0), cval.Field(1).Index(i).Int())
+		}
+		eq(t, int64(0), cval.Field(2).Int())
+		eq(t, uint64(0), cval.Field(3).Uint())
+
+		values := []interface{}{
+			uint16(val),
+			[]int32{val, val, val, val, val,
+				val, val, val, val, val},
+			int32(val),
+			uint16(val),
+		}
+
+		for i, value := range values {
+			field := cval.Field(i)
+			w := ffi.NewWriter(field)
+			err = binary.Write(w, order, value)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+		}
+		// test values back
+		eq(t, uint64(val), cval.Field(0).Uint())
+		for i := 0; i < arr10.Len(); i++ {
+			eq(t, int64(val), cval.Field(1).Index(i).Int())
+		}
+		eq(t, int64(val), cval.Field(2).Int())
+		eq(t, uint64(val), cval.Field(3).Uint())
+	}
 }
 
 // EOF
