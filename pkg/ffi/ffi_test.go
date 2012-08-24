@@ -2,16 +2,19 @@ package ffi_test
 
 import (
 	"math"
+	"path"
 	"reflect"
+	"runtime"
 	"testing"
 
 	"github.com/sbinet/go-ffi/pkg/ffi"
-	//"github.com/sbinet/go-ffi/pkg/dl"
 )
 
 func eq(t *testing.T, ref, chk interface{}) {
+	_, file, line, _ := runtime.Caller(1)
+	file = path.Base(file)
 	if !reflect.DeepEqual(ref, chk) {
-		t.Errorf("expected [%v], got [%v]", ref, chk)
+		t.Errorf("%s:%d: expected [%v], got [%v]", file, line, ref, chk)
 	}
 }
 

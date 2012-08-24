@@ -455,6 +455,16 @@ func ctype_from_ffi(t *C.ffi_type) Type {
 }
 */
 
+// PtrTo returns the pointer type with element t.
+// For example, if t represents type Foo, PtrTo(t) represents *Foo.
+func PtrTo(t Type) Type {
+	typ, err := NewPointerType(t)
+	if err != nil {
+		return nil
+	}
+	return typ
+}
+
 func init() {
 	g_types = make(map[string]Type)
 
