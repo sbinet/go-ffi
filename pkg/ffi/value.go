@@ -2,6 +2,7 @@ package ffi
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 	"reflect"
 	"runtime"
@@ -450,8 +451,20 @@ func ValueOf(i interface{}) Value {
 		panic("unimplemented")
 	case reflect.Ptr:
 		panic("unimplemented")
+
 	case reflect.Struct:
-		panic("unimplemented")
+		ct := ctype_from_gotype(rt)
+		v = New(ct)
+		for i := 0; i < rt.NumField(); i++ {
+			cfield := v.Field(i)
+			w := NewWriter(cfield)
+			goval := rv.Field(i)
+			err := binary.Write(w, g_native_endian, goval.Interface())
+			if err != nil {
+				panic("ffi: "+err.Error())
+			}
+		}
+
 	case reflect.String:
 		panic("unimplemented")
 	default:

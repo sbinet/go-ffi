@@ -2,6 +2,7 @@ package ffi
 
 import (
 	"fmt"
+	"reflect"
 	"unsafe"
 )
 
@@ -68,7 +69,9 @@ const (
 	Struct     Kind = C.FFI_TYPE_STRUCT
 	Ptr        Kind = C.FFI_TYPE_POINTER
 	//FIXME
-	Array Kind = 255
+	Array Kind = 255 + iota
+	Slice
+	String
 )
 
 func (k Kind) String() string {
@@ -423,6 +426,90 @@ func register_type(t Type) {
 	g_types[t.Name()] = t
 }
 
+func ctype_from_gotype(rt reflect.Type) Type {
+	var t Type
+
+	switch rt.Kind() {
+	case reflect.Int:
+		t = C_int
+
+	case reflect.Int8:
+		t = C_int8
+
+	case reflect.Int16:
+		t = C_int16
+
+	case reflect.Int32:
+		t = C_int32
+
+	case reflect.Int64:
+		t = C_int64
+
+	case reflect.Uint:
+		t = C_uint
+
+	case reflect.Uint8:
+		t = C_uint8
+
+	case reflect.Uint16:
+		t = C_uint16
+
+	case reflect.Uint32:
+		t = C_uint32
+
+	case reflect.Uint64:
+		t = C_uint64
+
+	case reflect.Float32:
+		t = C_float
+
+	case reflect.Float64:
+		t = C_double
+
+	case reflect.Array:
+		et := ctype_from_gotype(rt.Elem())
+		ct, err := NewArrayType(rt.Len(), et)
+		if err != nil {
+			panic("ffi: " + err.Error())
+		}
+		t = ct
+
+	case reflect.Ptr:
+		panic("unimplemented: reflect.Ptr")
+
+	case reflect.Slice:
+		panic("unimplemented: reflect.Slice")
+		// et := ctype_from_gotype(rt.Elem())
+		// ct, err := NewArrayType(rt.Len(), et)
+		// if err != nil {
+		// 	panic("ffi: " + err.Error())
+		// }
+		// t = ct
+
+	case reflect.Struct:
+		fields := make([]Field, rt.NumField())
+		for i := 0; i < rt.NumField(); i++ {
+			field := rt.Field(i)
+			fields[i] = Field{
+				Name: field.Name,
+				Type: ctype_from_gotype(field.Type),
+			}
+		}
+		ct, err := NewStructType(rt.Name(), fields)
+		if err != nil {
+			panic("ffi: " + err.Error())
+		}
+		t = ct
+
+	case reflect.String:
+		panic("unimplemented")
+	default:
+		panic("unhandled kind [" + rt.Kind().String() + "]")
+	}
+
+	return t
+}
+
 /*
 func ctype_from_ffi(t *C.ffi_type) Type {
 	switch t {
@@ -477,6 +564,56 @@ func PtrTo(t Type) Type {
 		return nil
 	}
 	return typ
+}
+
+// TypeOf returns the ffi Type of the value in the interface{}.
+// TypeOf(nil) returns nil
+// TypeOf(reflect.Type) returns the ffi Type corresponding to the reflected value
+func TypeOf(i interface{}) Type {
+	switch typ := i.(type) {
+	case reflect.Type:
+		return ctype_from_gotype(typ)
+	default:
+		rt := reflect.TypeOf(i)
+		return ctype_from_gotype(rt)
+	}
+	panic("unreachable")
+}
+
+// is_compatible returns whether two ffi Types are binary compatible
+func is_compatible(t1, t2 Type) bool {
+	if t1.Kind() != t2.Kind() {
+		//FIXME: test if it is int/intX and uint/uintX
+		return false
+	}
+	switch t1.Kind() {
+	case Struct:
+		for i := 0; i < t1.NumField(); i++ {
+			f1 := t1.Field(i)
+			f2 := t2.Field(i)
+			if !is_compatible(f1.Type, f2.Type) {
+				return false
+			}
+		}
+	case Array:
+		if t1.Len() != t2.Len() {
+			return false
+		}
+		et1 := t1.Elem()
+		et2 := t2.Elem()
+		if !is_compatible(et1, et2) {
+			return false
+		}
+		return true
+	case Ptr:
+		panic("unimplemented: ffi.Ptr")
+
+	case Slice:
+		panic("unimplemented: ffi.Slice")
+	case String:
+		panic("unimplemented: ffi.String")
+	}
+	return true
 }
 
 func init() {

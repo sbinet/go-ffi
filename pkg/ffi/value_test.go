@@ -586,6 +586,244 @@ func TestValueOf(t *testing.T) {
 			eq(t, rval.Field(i).Int()-1, cval.Field(i).Int())
 		}
 		cval = ffi.ValueOf(gval)
+		for i := 0; i<ctyp.NumField(); i++ {
+			eq(t, rval.Field(i).Int(), cval.Field(i).Int())
+		}
 	}
+}
+
+
+func TestEncoderDecoder(t *testing.T) {
+	{
+		const val = 42
+		for _,v := range []interface{}{
+			int(val),
+			int8(val),
+			int16(val),
+			int32(val),
+			int64(val),
+		}{
+			ct := ffi.TypeOf(v)
+			cv := ffi.New(ct)
+			enc := ffi.NewEncoder(cv)
+			err := enc.Encode(v)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			eq(t, int64(val), cv.Int())
+
+			// now decode back
+			vv := reflect.New(reflect.TypeOf(v))
+			dec := ffi.NewDecoder(cv)
+			err = dec.Decode(vv.Interface())
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			eq(t, vv.Elem().Int(), cv.Int())
+		}
+	}
+
+	{
+		const val = 42
+		for _,v := range []interface{}{
+			uint(val),
+			uint8(val),
+			uint16(val),
+			uint32(val),
+			uint64(val),
+		}{
+			ct := ffi.TypeOf(v)
+			cv := ffi.New(ct)
+			enc := ffi.NewEncoder(cv)
+			err := enc.Encode(v)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			eq(t, uint64(val), cv.Uint())
+
+			// now decode back
+			vv := reflect.New(reflect.TypeOf(v))
+			dec := ffi.NewDecoder(cv)
+			err = dec.Decode(vv.Interface())
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			eq(t, vv.Elem().Uint(), cv.Uint())
+		}
+	}
+	{
+		const val = 42.0
+		for _,v := range []interface{}{
+			float32(val),
+			float64(val),
+		}{
+			ct := ffi.TypeOf(v)
+			cv := ffi.New(ct)
+			enc := ffi.NewEncoder(cv)
+			err := enc.Encode(v)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			eq(t, float64(val), cv.Float())
+
+			// now decode back
+			vv := reflect.New(reflect.TypeOf(v))
+			dec := ffi.NewDecoder(cv)
+			err = dec.Decode(vv.Interface())
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			eq(t, vv.Elem().Float(), cv.Float())
+		}
+	}
+	{
+		const val = 42
+		ctyp, err := ffi.NewStructType(
+			"struct_ints",
+			[]ffi.Field{
+			{"F1", ffi.C_int8},
+			{"F2", ffi.C_int16},
+			{"F3", ffi.C_int32},
+			{"F4", ffi.C_int64},
+		})
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		cval := ffi.New(ctyp)
+		gval := struct{
+			F1 int8
+			F2 int16
+			F3 int32
+			F4 int64
+		}{val+1, val+1, val+1, val+1}
+		enc := ffi.NewEncoder(cval)
+		err = enc.Encode(gval)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+
+		rval := reflect.ValueOf(gval)
+		for i := 0; i<ctyp.NumField(); i++ {
+			eq(t, rval.Field(i).Int(), cval.Field(i).Int())
+		}
+
+		// now decode back
+		vv := reflect.New(rval.Type())
+		dec := ffi.NewDecoder(cval)
+		err = dec.Decode(vv.Interface())
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		rval = vv.Elem()
+		for i := 0; i<ctyp.NumField(); i++ {
+			eq(t, rval.Field(i).Int(), cval.Field(i).Int())
+		}
+	}
+	{
+		const val = 42
+		ctyp, err := ffi.NewArrayType(10, ffi.C_int32)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		cval := ffi.New(ctyp)
+		gval := [10]int32{
+			val, val, val, val, val,
+			val, val, val, val, val,
+		}
+		enc := ffi.NewEncoder(cval)
+		err = enc.Encode(gval)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		for i := 0; i < cval.Type().Len(); i++ {
+			eq(t, int64(val), cval.Index(i).Int())
+		}
+
+		// now decode back
+		vv := reflect.New(reflect.TypeOf(gval))
+		dec := ffi.NewDecoder(cval)
+		err = dec.Decode(vv.Interface())
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		for i := 0; i < cval.Type().Len(); i++ {
+			eq(t, vv.Elem().Index(i).Int(), cval.Index(i).Int())
+		}
+
+	}
+
+	{
+		const val = 42
+		ctyp, err := ffi.NewArrayType(10, ffi.C_float)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		cval := ffi.New(ctyp)
+		gval := [10]float32{
+			val, val, val, val, val,
+			val, val, val, val, val,
+		}
+		enc := ffi.NewEncoder(cval)
+		err = enc.Encode(gval)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		for i := 0; i < cval.Type().Len(); i++ {
+			eq(t, float64(val), cval.Index(i).Float())
+		}
+		// now decode back
+		vv := reflect.New(reflect.TypeOf(gval))
+		dec := ffi.NewDecoder(cval)
+		err = dec.Decode(vv.Interface())
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		for i := 0; i < cval.Type().Len(); i++ {
+			eq(t, vv.Elem().Index(i).Float(), cval.Index(i).Float())
+		}
+
+	}
+
+	// FIXME: need to implement a VlenArrayType
+	// {
+	// 	const val = 42
+	// 	ctyp, err := ffi.NewArrayType(10, ffi.C_int32)
+	// 	if err != nil {
+	// 		t.Errorf(err.Error())
+	// 	}
+	// 	cval := ffi.New(ctyp)
+	// 	gval := []int32{
+	// 		val, val, val, val, val,
+	// 		val, val, val, val, val,
+	// 	}
+	// 	enc := ffi.NewEncoder(cval)
+	// 	err = enc.Encode(gval)
+	// 	if err != nil {
+	// 		t.Errorf(err.Error())
+	// 	}
+	// 	for i := 0; i < cval.Type().Len(); i++ {
+	// 		eq(t, int64(val), cval.Index(i).Int())
+	// 	}
+	// }
+	// {
+	// 	const val = 42
+	// 	ctyp, err := ffi.NewArrayType(10, ffi.C_float)
+	// 	if err != nil {
+	// 		t.Errorf(err.Error())
+	// 	}
+	// 	cval := ffi.New(ctyp)
+	// 	gval := []float32{
+	// 		val, val, val, val, val,
+	// 		val, val, val, val, val,
+	// 	}
+	// 	enc := ffi.NewEncoder(cval)
+	// 	err = enc.Encode(gval)
+	// 	if err != nil {
+	// 		t.Errorf(err.Error())
+	// 	}
+	// 	for i := 0; i < cval.Type().Len(); i++ {
+	// 		eq(t, float64(val), cval.Index(i).Float())
+	// 	}
+	// }
 }
 // EOF
