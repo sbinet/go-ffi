@@ -108,6 +108,10 @@ func (k Kind) String() string {
 		return "Ptr"
 	case Array:
 		return "Array"
+	case Slice:
+		return "Slice"
+	case String:
+		return "String"
 	}
 	panic("unreachable")
 }
@@ -196,6 +200,9 @@ func (t cffi_type) Elem() Type {
 	case Ptr:
 		tt := (*cffi_ptr)(unsafe.Pointer(&t))
 		return tt.Elem()
+	case Slice:
+		tt := (*cffi_slice)(unsafe.Pointer(&t))
+		return tt.Elem()
 	}
 	panic("ffi: Elem of invalid type")
 }
@@ -267,8 +274,15 @@ type Field struct {
 	Type Type   // field type
 }
 
+var g_id_ch chan int
+
 // NewStructType creates a new ffi_type describing a C-struct
 func NewStructType(name string, fields []Field) (Type, error) {
+	if name == "" {
+		// anonymous type...
+		// generate some id.
+			name = fmt.Sprintf("_ffi_anon_type_%d", <-g_id_ch)
+	}
 	if t := TypeByName(name); t != nil {
 		// check the definitions are the same
 		if t.NumField() != len(fields) {
@@ -409,6 +423,55 @@ func NewPointerType(elmt Type) (Type, error) {
 	return t, nil
 }
 
+type cffi_slice struct {
+	cffi_type
+	elem Type
+}
+
+func (t cffi_slice) Kind() Kind {
+	// FIXME: ffi has no concept of array (as they decay to pointers in C)
+	//return Kind(C._go_ffi_type_get_type(t.c))
+	return Slice
+}
+
+func (t cffi_slice) Elem() Type {
+	return t.elem
+}
+
+// NewSliceType creates a new ffi_type slice with the given element type
+func NewSliceType(elmt Type) (Type, error) {
+	n := elmt.Name() + "[]"
+	if t := TypeByName(n); t != nil {
+		return t, nil
+	}
+	c := C.ffi_type{}
+	t := cffi_slice{
+		cffi_type: cffi_type{n: n, c: &c},
+		elem:      elmt,
+	}
+	t.cffi_type.c.size = 0
+	t.cffi_type.c.alignment = 0
+	C._go_ffi_type_set_type(t.cptr(), C.FFI_TYPE_STRUCT)
+
+	var c_fields **C.ffi_type = nil
+	var cargs = make([]*C.ffi_type, 3+1)
+	cargs[0] = elmt.cptr()     // ptr to C-array
+	cargs[1] = C_int64.cptr() // len
+	cargs[2] = C_int64.cptr() // cap
+	cargs[3] = nil
+	c_fields = &cargs[0]
+	C._go_ffi_type_set_elements(t.cptr(), unsafe.Pointer(c_fields))
+
+	// initialize type (computes alignment and size)
+	_, err := NewCif(DefaultAbi, t, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	register_type(t)
+	return t, nil
+}
+
 // the global map of types
 var g_types map[string]Type
 
@@ -475,16 +538,20 @@ func ctype_from_gotype(rt reflect.Type) Type {
 		t = ct
 
 	case reflect.Ptr:
-		panic("unimplemented: reflect.Ptr")
+		et := ctype_from_gotype(rt.Elem())
+		ct, err := NewPointerType(et)
+		if err != nil {
+			panic("ffi: " + err.Error())
+		}
+		t = ct
 
 	case reflect.Slice:
-		panic("unimplemented: reflect.Slice")
-		// et := ctype_from_gotype(rt.Elem())
-		// ct, err := NewArrayType(rt.Len(), et)
-		// if err != nil {
-		// 	panic("ffi: " + err.Error())
-		// }
-		// t = ct
+		et := ctype_from_gotype(rt.Elem())
+		ct, err := NewSliceType(et)
+		if err != nil {
+			panic("ffi: " + err.Error())
+		}
+		t = ct
 
 	case reflect.Struct:
 		fields := make([]Field, rt.NumField())
@@ -609,7 +676,13 @@ func is_compatible(t1, t2 Type) bool {
 		panic("unimplemented: ffi.Ptr")
 
 	case Slice:
-		panic("unimplemented: ffi.Slice")
+		et1 := t1.Elem()
+		et2 := t2.Elem()
+		if !is_compatible(et1, et2) {
+			return false
+		}
+		return true
+
 	case String:
 		panic("unimplemented: ffi.String")
 	}
@@ -617,6 +690,16 @@ func is_compatible(t1, t2 Type) bool {
 }
 
 func init() {
+	// init out id counter channel
+	g_id_ch = make(chan int, 1)
+	go func() {
+		i := 0
+		for {
+			g_id_ch <- i
+			i++
+		}
+	}()
+
 	g_types = make(map[string]Type)
 
 	// initialize all builtin types

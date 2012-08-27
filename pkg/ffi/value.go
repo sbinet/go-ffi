@@ -2,7 +2,6 @@ package ffi
 
 import (
 	"bytes"
-	"encoding/binary"
 	"io"
 	"reflect"
 	"runtime"
@@ -136,8 +135,14 @@ func (v Value) Buffer() []byte {
 // Cap returns v's capacity.
 // It panics if v's Kind is not Array.
 func (v Value) Cap() int {
-	v.mustBe(Array)
-	return v.typ.Len()
+	k := v.Kind()
+	switch k {
+	case Array:
+		return v.typ.Len()
+	case Slice:
+		return (*reflect.SliceHeader)(v.val).Cap
+	}
+	panic(&ValueError{"ffi.Value.Cap", k})
 }
 
 // Elem returns the value that the pointer v points to.
@@ -218,16 +223,30 @@ func (v Value) Float() float64 {
 // Index returns v's i'th element.
 // It panics if v's Kind is not Array or Slice or i is out of range.
 func (v Value) Index(i int) Value {
-	v.mustBe(Array)
-	tt := v.typ.(cffi_array)
-	if i < 0 || i > int(tt.Len()) {
-		panic("ffi: array index out of range")
-	}
-	typ := tt.Elem()
-	offset := uintptr(i) * typ.Size()
+	k := v.typ.Kind()
+	switch k {
+	case Array:
+		tt := v.typ.(cffi_array)
+		if i < 0 || i > int(tt.Len()) {
+			panic("ffi: array index out of range")
+		}
+		typ := tt.Elem()
+		offset := uintptr(i) * typ.Size()
 
-	var val unsafe.Pointer = unsafe.Pointer(uintptr(v.val) + offset)
-	return Value{typ, val}
+		var val unsafe.Pointer = unsafe.Pointer(uintptr(v.val) + offset)
+		return Value{typ, val}
+	case Slice:
+		s := (*reflect.SliceHeader)(v.val)
+		if i < 0 || i >= s.Len {
+			panic("ffi: slice index out of range")
+		}
+		tt := v.typ.(cffi_slice)
+		typ := tt.Elem()
+		offset := uintptr(i) * typ.Size()
+		val := unsafe.Pointer(s.Data + offset)
+		return Value{typ, val}
+	}
+	panic(&ValueError{"ffi.Value.Index", k})
 }
 
 // Int returns v's underlying value, as an int64.
@@ -276,9 +295,19 @@ func (v Value) Kind() Kind {
 // Len returns v's length.
 // It panics if v's Kind is not Array
 func (v Value) Len() int {
-	v.mustBe(Array)
-	tt := v.typ.(cffi_array)
-	return int(tt.Len())
+	switch k := v.Kind(); k {
+	case Array:
+		tt := v.typ.(cffi_array)
+		return int(tt.Len())
+	case Slice:
+		//FIXME: make more robust
+		//NOTE: we assume the layout of our "slice header" is the same than
+		//      reflect.SliceHeader's...
+		return (*reflect.SliceHeader)(v.val).Len
+	default:
+		panic(&ValueError{"ffi.Value.Len", k})
+	}
+	panic("unreachable")
 }
 
 // NumField returns the number of fields in the struct v.
@@ -321,6 +350,12 @@ func (v Value) SetInt(x int64) {
 	}
 }
 
+// SetPointer sets the unsafe.Pointer value v to x.
+func (v Value) SetPointer(x unsafe.Pointer) {
+	v.mustBe(Ptr)
+	*(*unsafe.Pointer)(v.val) = x
+}
+
 // SetUint sets v's underlying value to x.
 // It panics if v's Kind is not Int, Int8, Int16, Int32, or Int64, or if CanSet() is false.
 func (v Value) SetUint(x uint64) {
@@ -339,6 +374,49 @@ func (v Value) SetUint(x uint64) {
 	case Uint64:
 		*(*uint64)(v.val) = x
 	}
+}
+
+// Slice returns a slice of v.
+// It panics if v's Kind is not Array or Slice.
+func (v Value) Slice(beg, end int) Value {
+	var (
+		cap  int
+		typ  Type
+		base unsafe.Pointer
+	)
+	switch k := v.Kind(); k {
+	default:
+		panic(&ValueError{"ffi.Value.Slice", k})
+	case Array:
+		tt := v.typ.(cffi_array)
+		cap = int(tt.Len())
+		var err error
+		typ, err = NewSliceType(tt.Elem())
+		if err != nil {
+			panic("ffi.Value.Slice: "+err.Error())
+		}
+		base = v.val
+	case Slice:
+		typ = v.typ.(cffi_slice)
+		s := (*reflect.SliceHeader)(v.val)
+		base = unsafe.Pointer(s.Data)
+		cap = s.Cap
+
+	}
+	if beg < 0 || end < beg || end > cap {
+		panic("ffi.Value.Slice: slice index out of bounds")
+	}
+
+	// Declare slice so that gc can see the base pointer in it.
+	var x []byte
+
+	// Reinterpret as *SliceHeader to edit.
+	s := (*reflect.SliceHeader)(unsafe.Pointer(&x))
+	s.Data = uintptr(base) + uintptr(beg)*typ.Elem().Size()
+	s.Len = end - beg
+	s.Cap = cap - beg
+
+	return Value{typ, unsafe.Pointer(&x)}
 }
 
 // Type returns v's type
@@ -448,7 +526,14 @@ func ValueOf(i interface{}) Value {
 		v.SetFloat(rv.Float())
 
 	case reflect.Array:
-		panic("unimplemented")
+		ct := ctype_from_gotype(rt)
+		v = New(ct)
+		enc := NewEncoder(v)
+		err := enc.Encode(rv.Interface())
+		if err != nil {
+			panic("ffi: " + err.Error())
+		}
+
 	case reflect.Ptr:
 		panic("unimplemented")
 
@@ -457,21 +542,99 @@ func ValueOf(i interface{}) Value {
 		v = New(ct)
 		for i := 0; i < rt.NumField(); i++ {
 			cfield := v.Field(i)
-			w := NewWriter(cfield)
 			goval := rv.Field(i)
-			err := binary.Write(w, g_native_endian, goval.Interface())
+			enc := NewEncoder(cfield)
+			err := enc.Encode(goval.Interface())
 			if err != nil {
-				panic("ffi: "+err.Error())
+				panic("ffi: " + err.Error())
 			}
 		}
 
 	case reflect.String:
 		panic("unimplemented")
+
+	case reflect.Slice:
+		ct := ctype_from_gotype(rt)
+		v = MakeSlice(ct, rv.Len(), rv.Cap())
+		enc := NewEncoder(v)
+		err := enc.Encode(rv.Interface())
+		if err != nil {
+			panic("ffi: " + err.Error())
+		}
+
 	default:
 		panic("unhandled kind [" + rt.Kind().String() + "]")
 	}
 
 	return v
+}
+
+// MakeSlice creates a new zero-initialized slice value
+// for the specified slice type, length, and capacity.
+func MakeSlice(typ Type, len, cap int) Value {
+	if typ.Kind() != Slice {
+		panic("ffi.MakeSlice of non-slice type")
+	}
+	if len < 0 {
+		panic("ffi.MakeSlice: negative len")
+	}
+	if cap < 0 {
+		panic("ffi.MakeSlice: negative cap")
+	}
+	if len > cap {
+		panic("ffi.MakeSlice: len > cap")
+	}
+
+	// Declare slice so that gc can see the base pointer in it.
+	slice_len := uintptr(len) * typ.Elem().Size()
+	slice_cap := uintptr(cap) * typ.Elem().Size()
+	x := make([]byte, slice_len, slice_cap)
+
+	// Reinterpret as *SliceHeader to edit.
+	s := (*reflect.SliceHeader)(unsafe.Pointer(&x))
+	arr_typ, err := NewArrayType(cap, typ.Elem())
+	if err != nil {
+		panic("ffi: " + err.Error())
+	}
+	arr_val := New(arr_typ)
+	s.Data = uintptr(arr_val.UnsafeAddr())
+	s.Len = len
+	s.Cap = cap
+
+	return Value{typ, unsafe.Pointer(&x)}
+}
+
+// grow_slice grows the slice s so that it can hold extra more values, 
+// allocating more capacity if needed.
+// It also returns the old and new slice lengths.
+func grow_slice(s Value, extra int) (Value, int, int) {
+	s.mustBe(Slice)
+
+	i0 := s.Len()
+	i1 := i0 + extra
+	if i1 < i0 {
+		panic("ffi.Append: slice overflow")
+	}
+	m := s.Cap()
+	if i1 <= m {
+		return s.Slice(0, i1), i0, i1
+	}
+	if m == 0 {
+		m = extra
+	} else {
+		for m < i1 {
+			if i0 < 1024 {
+				m += m
+			} else {
+				m += m / 4
+			}
+		}
+	}
+	t := MakeSlice(s.Type(), i1, m)
+	tx := (*[]byte)(unsafe.Pointer(t.val))
+	sx := (*[]byte)(unsafe.Pointer(s.val))
+	_ = copy(*tx, *sx)
+	return t, i0, i1
 }
 
 // NewReader returns an io.Reader from a value, reading from its binary storage

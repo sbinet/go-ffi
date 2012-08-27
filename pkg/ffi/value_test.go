@@ -3,7 +3,7 @@ package ffi_test
 import (
 	//"bytes"
 	"encoding/binary"
-	//"fmt"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -246,6 +246,107 @@ func TestGetSetStructValue(t *testing.T) {
 	}
 	eq(t, int64(val), cval.FieldByName("F3").Int())
 	eq(t, uint64(val), cval.FieldByName("F4").Uint())
+
+}
+
+func TestGetSetSliceValue(t *testing.T) {
+
+	const sz = 10
+	{
+		const val = 42
+		for _, tt := range []struct {
+			n   string
+			t   ffi.Type
+			val interface{}
+		}{
+			{"uint8[]",  ffi.C_uint8,  make([]uint8, sz)},
+			{"uint16[]", ffi.C_uint16, make([]uint16, sz)},
+			{"uint32[]", ffi.C_uint32, make([]uint32, sz)},
+			{"uint64[]", ffi.C_uint64, make([]uint64, sz)},
+		} {
+			ctyp, err := ffi.NewSliceType(tt.t)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			cval := ffi.MakeSlice(ctyp, sz, sz)
+			eq(t, tt.n, cval.Type().Name())
+			eq(t, ctyp.Kind(), cval.Kind())
+			gtyp := reflect.TypeOf(tt.val)
+			gval := reflect.MakeSlice(gtyp, sz, sz)
+			eq(t, gval.Len(), cval.Len())
+			eq(t, int(sz), cval.Len())
+			for i := 0; i < gval.Len(); i++ {
+				eq(t, gval.Index(i).Uint(), cval.Index(i).Uint())
+				gval.Index(i).SetUint(val)
+				cval.Index(i).SetUint(val)
+				eq(t, gval.Index(i).Uint(), cval.Index(i).Uint())
+			}
+		}
+	}
+
+	{
+		const val = 42
+		for _, tt := range []struct {
+			n   string
+			t   ffi.Type
+			val interface{}
+		}{
+			{"int8[]", ffi.C_int8, make([]int8, sz)},
+			{"int16[]", ffi.C_int16, make([]int16, sz)},
+			{"int32[]", ffi.C_int32, make([]int32, sz)},
+			{"int64[]", ffi.C_int64, make([]int64, sz)},
+		} {
+			ctyp, err := ffi.NewSliceType(tt.t)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			cval := ffi.MakeSlice(ctyp, sz, sz)
+			eq(t, tt.n, cval.Type().Name())
+			eq(t, ctyp.Kind(), cval.Kind())
+			gtyp := reflect.TypeOf(tt.val)
+			gval := reflect.MakeSlice(gtyp, sz, sz)
+			eq(t, gval.Len(), cval.Len())
+			eq(t, int(sz), cval.Len())
+			for i := 0; i < gval.Len(); i++ {
+				eq(t, gval.Index(i).Int(), cval.Index(i).Int())
+				gval.Index(i).SetInt(val)
+				cval.Index(i).SetInt(val)
+				eq(t, gval.Index(i).Int(), cval.Index(i).Int())
+			}
+		}
+	}
+
+	{
+		const val = -66.2
+		for _, tt := range []struct {
+			n   string
+			t   ffi.Type
+			val interface{}
+		}{
+			{"float[]", ffi.C_float, make([]float32, sz)},
+			{"double[]", ffi.C_double, make([]float64, sz)},
+			// FIXME: go has no long double equivalent
+			//{"long double[]", ffi.C_longdouble, make([]float128, sz)}
+		} {
+			ctyp, err := ffi.NewSliceType(tt.t)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			cval := ffi.MakeSlice(ctyp, sz, sz)
+			eq(t, tt.n, cval.Type().Name())
+			eq(t, ctyp.Kind(), cval.Kind())
+			gtyp := reflect.TypeOf(tt.val)
+			gval := reflect.MakeSlice(gtyp, sz, sz)
+			eq(t, gval.Len(), cval.Len())
+			eq(t, int(sz), cval.Len())
+			for i := 0; i < gval.Len(); i++ {
+				eq(t, gval.Index(i).Float(), cval.Index(i).Float())
+				gval.Index(i).SetFloat(val)
+				cval.Index(i).SetFloat(val)
+				eq(t, gval.Index(i).Float(), cval.Index(i).Float())
+			}
+		}
+	}
 
 }
 
@@ -594,6 +695,10 @@ func TestValueOf(t *testing.T) {
 
 
 func TestEncoderDecoder(t *testing.T) {
+	arr_10, _ := ffi.NewArrayType(10, ffi.C_int32)
+	sli_10, _ := ffi.NewSliceType(ffi.C_int32)
+
+	const sz = 10
 	{
 		const val = 42
 		for _,v := range []interface{}{
@@ -721,12 +826,145 @@ func TestEncoderDecoder(t *testing.T) {
 	}
 	{
 		const val = 42
-		ctyp, err := ffi.NewArrayType(10, ffi.C_int32)
+		ctyp, err := ffi.NewStructType(
+			"struct_ints_arr10",
+			[]ffi.Field{
+			{"F1", ffi.C_int8},
+			{"F2", ffi.C_int16},
+			{"A1", arr_10},
+			{"F3", ffi.C_int32},
+			{"F4", ffi.C_int64},
+		})
 		if err != nil {
 			t.Errorf(err.Error())
 		}
 		cval := ffi.New(ctyp)
-		gval := [10]int32{
+		gval := struct{
+			F1 int8
+			F2 int16
+			A1 [sz]int32
+			F3 int32
+			F4 int64
+		}{
+			val+1, val+1, 
+			[sz]int32{
+				val, val, val, val, val,
+				val, val, val, val, val,
+			},
+			val+1, val+1,
+		}
+		enc := ffi.NewEncoder(cval)
+		err = enc.Encode(gval)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+
+		rval := reflect.ValueOf(gval)
+		eq(t, rval.Field(0).Int(), cval.Field(0).Int())
+		eq(t, rval.Field(1).Int(), cval.Field(1).Int())
+		eq(t, rval.Field(3).Int(), cval.Field(3).Int())
+		eq(t, rval.Field(4).Int(), cval.Field(4).Int())
+		rfield := cval.Field(2)
+		cfield := cval.Field(2)
+		eq(t, rfield.Len(), cfield.Len())
+		for i := 0; i<cfield.Len(); i++ {
+			eq(t, rfield.Index(i).Int(), cfield.Index(i).Int())
+		}
+
+		// now decode back
+		vv := reflect.New(rval.Type())
+		dec := ffi.NewDecoder(cval)
+		err = dec.Decode(vv.Interface())
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		rval = vv.Elem()
+		eq(t, rval.Field(0).Int(), cval.Field(0).Int())
+		eq(t, rval.Field(1).Int(), cval.Field(1).Int())
+		eq(t, rval.Field(3).Int(), cval.Field(3).Int())
+		eq(t, rval.Field(4).Int(), cval.Field(4).Int())
+		rfield = cval.Field(2)
+		cfield = cval.Field(2)
+		eq(t, rfield.Len(), cfield.Len())
+		for i := 0; i<cfield.Len(); i++ {
+			eq(t, rfield.Index(i).Int(), cfield.Index(i).Int())
+		}
+	}
+	if true {
+		const val = 42
+		ctyp, err := ffi.NewStructType(
+			"struct_ints_sli10",
+			[]ffi.Field{
+			{"F1", ffi.C_int8},
+			{"F2", ffi.C_int16},
+			{"S1", sli_10},
+			{"F3", ffi.C_int32},
+			{"F4", ffi.C_int64},
+		})
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		cval := ffi.New(ctyp)
+		gval := struct{
+			F1 int8
+			F2 int16
+			S1 []int32
+			F3 int32
+			F4 int64
+		}{
+			val+1, val+1, 
+			[]int32{
+				val, val, val, val, val,
+				val, val, val, val, val,
+			},
+			val+1, val+1,
+		}
+		enc := ffi.NewEncoder(cval)
+		err = enc.Encode(gval)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+
+		rval := reflect.ValueOf(gval)
+		eq(t, rval.Field(0).Int(), cval.Field(0).Int())
+		eq(t, rval.Field(1).Int(), cval.Field(1).Int())
+		eq(t, rval.Field(3).Int(), cval.Field(3).Int())
+		eq(t, rval.Field(4).Int(), cval.Field(4).Int())
+		rfield := cval.Field(2)
+		cfield := cval.Field(2)
+		eq(t, rfield.Len(), cfield.Len())
+		for i := 0; i<cfield.Len(); i++ {
+			fmt.Printf("--i: %d\n", i)
+			eq(t, rfield.Index(i).Int(), cfield.Index(i).Int())
+		}
+
+		// now decode back
+		vv := reflect.New(rval.Type())
+		dec := ffi.NewDecoder(cval)
+		err = dec.Decode(vv.Interface())
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		rval = vv.Elem()
+		eq(t, rval.Field(0).Int(), cval.Field(0).Int())
+		eq(t, rval.Field(1).Int(), cval.Field(1).Int())
+		eq(t, rval.Field(3).Int(), cval.Field(3).Int())
+		eq(t, rval.Field(4).Int(), cval.Field(4).Int())
+		rfield = cval.Field(2)
+		cfield = cval.Field(2)
+		eq(t, rfield.Len(), cfield.Len())
+		for i := 0; i<cfield.Len(); i++ {
+			eq(t, rfield.Index(i).Int(), cfield.Index(i).Int())
+		}
+	}
+	{
+		const val = 42
+		ctyp, err := ffi.NewArrayType(sz, ffi.C_int32)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		cval := ffi.New(ctyp)
+		gval := [sz]int32{
 			val, val, val, val, val,
 			val, val, val, val, val,
 		}
@@ -754,12 +992,12 @@ func TestEncoderDecoder(t *testing.T) {
 
 	{
 		const val = 42
-		ctyp, err := ffi.NewArrayType(10, ffi.C_float)
+		ctyp, err := ffi.NewArrayType(sz, ffi.C_float)
 		if err != nil {
 			t.Errorf(err.Error())
 		}
 		cval := ffi.New(ctyp)
-		gval := [10]float32{
+		gval := [sz]float32{
 			val, val, val, val, val,
 			val, val, val, val, val,
 		}
@@ -784,46 +1022,85 @@ func TestEncoderDecoder(t *testing.T) {
 
 	}
 
-	// FIXME: need to implement a VlenArrayType
-	// {
-	// 	const val = 42
-	// 	ctyp, err := ffi.NewArrayType(10, ffi.C_int32)
-	// 	if err != nil {
-	// 		t.Errorf(err.Error())
-	// 	}
-	// 	cval := ffi.New(ctyp)
-	// 	gval := []int32{
-	// 		val, val, val, val, val,
-	// 		val, val, val, val, val,
-	// 	}
-	// 	enc := ffi.NewEncoder(cval)
-	// 	err = enc.Encode(gval)
-	// 	if err != nil {
-	// 		t.Errorf(err.Error())
-	// 	}
-	// 	for i := 0; i < cval.Type().Len(); i++ {
-	// 		eq(t, int64(val), cval.Index(i).Int())
-	// 	}
-	// }
-	// {
-	// 	const val = 42
-	// 	ctyp, err := ffi.NewArrayType(10, ffi.C_float)
-	// 	if err != nil {
-	// 		t.Errorf(err.Error())
-	// 	}
-	// 	cval := ffi.New(ctyp)
-	// 	gval := []float32{
-	// 		val, val, val, val, val,
-	// 		val, val, val, val, val,
-	// 	}
-	// 	enc := ffi.NewEncoder(cval)
-	// 	err = enc.Encode(gval)
-	// 	if err != nil {
-	// 		t.Errorf(err.Error())
-	// 	}
-	// 	for i := 0; i < cval.Type().Len(); i++ {
-	// 		eq(t, float64(val), cval.Index(i).Float())
-	// 	}
-	// }
+	{
+		const val = 42
+		ctyp, err := ffi.NewSliceType(ffi.C_int32)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		cval := ffi.MakeSlice(ctyp, sz, sz)
+		gval := []int32{
+			val, val, val, val, val,
+			val, val, val, val, val,
+		}
+		enc := ffi.NewEncoder(cval)
+		err = enc.Encode(gval)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		for i := 0; i < cval.Len(); i++ {
+			eq(t, int64(val), cval.Index(i).Int())
+		}
+		// now decode back
+		vv := reflect.MakeSlice(reflect.TypeOf(gval), sz, sz)
+		dec := ffi.NewDecoder(cval)
+		err = dec.Decode(vv.Interface())
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		for i := 0; i < cval.Len(); i++ {
+			eq(t, vv.Index(i).Int(), cval.Index(i).Int())
+		}
+		{
+			// test too-short a slice fails
+			vv := reflect.MakeSlice(reflect.TypeOf(gval), sz+1, sz+1)
+			dec := ffi.NewDecoder(cval)
+			err = dec.Decode(vv.Interface())
+			if err == nil {
+				t.Errorf("too-short a []float32 slice does not fail")
+			}
+		}
+	}
+	{
+		const val = 42
+		ctyp, err := ffi.NewSliceType(ffi.C_float)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		cval := ffi.MakeSlice(ctyp, sz, sz)
+		gval := []float32{
+			val, val, val, val, val,
+			val, val, val, val, val,
+		}
+		enc := ffi.NewEncoder(cval)
+		err = enc.Encode(gval)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		for i := 0; i < cval.Len(); i++ {
+			eq(t, float64(val), cval.Index(i).Float())
+		}
+		{
+			// now decode back
+			vv := reflect.MakeSlice(reflect.TypeOf(gval), sz, sz)
+			dec := ffi.NewDecoder(cval)
+			err = dec.Decode(vv.Interface())
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			for i := 0; i < cval.Len(); i++ {
+				eq(t, vv.Index(i).Float(), cval.Index(i).Float())
+			}
+		}
+		{
+			// test too-short a slice fails
+			vv := reflect.MakeSlice(reflect.TypeOf(gval), sz+1, sz+1)
+			dec := ffi.NewDecoder(cval)
+			err = dec.Decode(vv.Interface())
+			if err == nil {
+				t.Errorf("too-short a []float32 slice does not fail")
+			}
+		}
+	}
 }
 // EOF

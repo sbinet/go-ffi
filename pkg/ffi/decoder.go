@@ -102,6 +102,20 @@ func (dec *Decoder) decode_value(v reflect.Value) (err error) {
 	case reflect.Ptr:
 		panic("unimplemented")
 
+	case reflect.Slice:
+		if v.Len() > dec.cval.Cap() {
+			return fmt.Errorf("ffi.Decoder: c-slice capacity too small")
+		}
+		for i := 0; i < v.Len(); i++ {
+			cval := dec.cval.Index(i)
+			data = v.Index(i).Addr().Interface()
+			w := NewReader(cval)
+			err = binary.Read(w, g_native_endian, data)
+			if err != nil {
+				return err
+			}
+		}
+		
 	case reflect.Struct:
 		v := v.Elem()
 		for i := 0; i < rt.NumField(); i++ {

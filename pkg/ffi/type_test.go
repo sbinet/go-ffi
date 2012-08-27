@@ -196,6 +196,49 @@ func TestNewArrayType(t *testing.T) {
 	}
 }
 
+func TestNewSliceType(t *testing.T) {
+
+	s_t, err := ffi.NewStructType("s_0", []ffi.Field{{"a", ffi.C_int32}})
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	p_s_t, err := ffi.NewPointerType(s_t)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	for _, table := range []struct {
+		name string
+		elem ffi.Type
+	}{
+		{"uint8[]", ffi.C_uint8},
+		{"uint16[]", ffi.C_uint16},
+		{"uint32[]", ffi.C_uint32},
+		{"uint64[]", ffi.C_uint64},
+		{"int8[]", ffi.C_int8},
+		{"int16[]", ffi.C_int16},
+		{"int32[]", ffi.C_int32},
+		{"int64[]", ffi.C_int64},
+
+		{"float[]", ffi.C_float},
+		{"double[]", ffi.C_double},
+
+		{"s_0[]", s_t},
+		{"s_0*[]", p_s_t},
+	} {
+		typ, err := ffi.NewSliceType(table.elem)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+		eq(t, table.name, typ.Name())
+		eq(t, table.elem, typ.Elem())
+		eq(t, (2*ffi.C_int64.Size()) + ffi.C_pointer.Size(), typ.Size())
+		//eq(t, table.n, typ.Len())
+		eq(t, ffi.Slice, typ.Kind())
+	}
+}
+
 func TestNewPointerType(t *testing.T) {
 	s_t, err := ffi.NewStructType("s_0", []ffi.Field{{"a", ffi.C_int32}})
 	if err != nil {

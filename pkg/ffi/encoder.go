@@ -76,12 +76,32 @@ func (enc *Encoder) encode_value(v reflect.Value) (err error) {
 		}
 	case reflect.Ptr:
 		panic("unimplemented")
+
+	case reflect.Slice:
+		if v.Len() > enc.cval.Cap() {
+			cval, _, _ := grow_slice(enc.cval, v.Len())
+			if v.Len() > cval.Cap() {
+				return fmt.Errorf("ffi.Encoder: c-slice capacity too small (got %d, needed %d)", cval.Cap(), v.Len())
+			} else {
+				enc.cval = cval
+			}
+		}
+		for i := 0; i < v.Len(); i++ {
+			cval := enc.cval.Index(i)
+			data = v.Index(i).Interface()
+			w := NewWriter(cval)
+			err = binary.Write(w, g_native_endian, data)
+			if err != nil {
+				return err
+			}
+		}
+
 	case reflect.Struct:
 		for i := 0; i < rt.NumField(); i++ {
 			field := enc.cval.Field(i)
+			field_enc := NewEncoder(field)
 			data = v.Field(i).Interface()
-			w := NewWriter(field)
-			err = binary.Write(w, g_native_endian, data)
+			err = field_enc.Encode(data)
 			if err != nil {
 				return err
 			}
@@ -89,8 +109,9 @@ func (enc *Encoder) encode_value(v reflect.Value) (err error) {
 
 	case reflect.String:
 		panic("unimplemented")
+
 	default:
-		panic("unhandled kind [" + rt.Kind().String() + "]")
+		panic("ffi.Encoder: unhandled kind [" + rt.Kind().String() + "]")
 	}
 	return err
 }
