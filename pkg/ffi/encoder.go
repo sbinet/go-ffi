@@ -22,7 +22,7 @@ type Encoder struct {
 func (enc *Encoder) Encode(v interface{}) error {
 	rv := reflect.ValueOf(v)
 	rt := reflect.TypeOf(v)
-	fmt.Printf("::Encode: %v %v\n", rt.Name(), rv)
+	//fmt.Printf("::Encode: %v %v\n", rt.Name(), rv)
 	// make sure we can encode this value v into enc.cval
 	ct := ctype_from_gotype(rt)
 	//if ct.Name() != enc.cval.Type().Name() {
