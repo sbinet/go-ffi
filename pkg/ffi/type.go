@@ -237,9 +237,6 @@ func (t *cffi_type) GoType() reflect.Type {
 
 func (t *cffi_type) set_gotype(rt reflect.Type) {
 	t.rt = rt
-	fmt.Printf("::set_gotype: %v %T %v %T\n", t.rt, t.rt, rt, rt)
-	o := t.GoType()
-	fmt.Printf("::set_gotype: %v %T %v\n", o, o, o == rt)
 }
 
 var (
@@ -290,10 +287,6 @@ func (t *cffi_struct) Field(i int) StructField {
 
 func (t *cffi_struct) set_gotype(rt reflect.Type) {
 	t.cffi_type.rt = rt
-	fmt.Printf("-- %p --\n", &t)
-	fmt.Printf("::set_gotype-struct: %v %T %v %T\n", t.rt, t.rt, rt, rt)
-	o := t.GoType()
-	fmt.Printf("::set_gotype-struct: %v %T %v\n", o, o, o == rt)
 }
 
 
