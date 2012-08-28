@@ -75,7 +75,10 @@ func (enc *Encoder) encode_value(v reflect.Value) (err error) {
 			}
 		}
 	case reflect.Ptr:
-		panic("unimplemented")
+		ptee := enc.cval.Elem()
+		ptee_enc := NewEncoder(ptee)
+		data = reflect.Indirect(v).Interface()
+		err = ptee_enc.Encode(data)
 
 	case reflect.Slice:
 		if v.Len() > enc.cval.Cap() {
@@ -108,7 +111,7 @@ func (enc *Encoder) encode_value(v reflect.Value) (err error) {
 		}
 
 	case reflect.String:
-		panic("unimplemented")
+		panic("ffi.Encoder: String unimplemented")
 
 	default:
 		panic("ffi.Encoder: unhandled kind [" + rt.Kind().String() + "]")

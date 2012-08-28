@@ -159,7 +159,7 @@ func (v Value) Elem() Value {
 // It panics if v's Kind is not Struct or i is out of range.
 func (v Value) Field(i int) Value {
 	v.mustBe(Struct)
-	tt := v.typ.(cffi_struct)
+	tt := v.typ.(*cffi_struct)
 	nfields := tt.NumField()
 	if i < 0 || i >= nfields {
 		panic("ffi: Field index out of range")
@@ -226,7 +226,7 @@ func (v Value) Index(i int) Value {
 	k := v.typ.Kind()
 	switch k {
 	case Array:
-		tt := v.typ.(cffi_array)
+		tt := v.typ.(*cffi_array)
 		if i < 0 || i > int(tt.Len()) {
 			panic("ffi: array index out of range")
 		}
@@ -240,7 +240,7 @@ func (v Value) Index(i int) Value {
 		if i < 0 || i >= s.Len {
 			panic("ffi: slice index out of range")
 		}
-		tt := v.typ.(cffi_slice)
+		tt := v.typ.(*cffi_slice)
 		typ := tt.Elem()
 		offset := uintptr(i) * typ.Size()
 		val := unsafe.Pointer(s.Data + offset)
@@ -297,7 +297,7 @@ func (v Value) Kind() Kind {
 func (v Value) Len() int {
 	switch k := v.Kind(); k {
 	case Array:
-		tt := v.typ.(cffi_array)
+		tt := v.typ.(*cffi_array)
 		return int(tt.Len())
 	case Slice:
 		//FIXME: make more robust
@@ -388,7 +388,7 @@ func (v Value) Slice(beg, end int) Value {
 	default:
 		panic(&ValueError{"ffi.Value.Slice", k})
 	case Array:
-		tt := v.typ.(cffi_array)
+		tt := v.typ.(*cffi_array)
 		cap = int(tt.Len())
 		var err error
 		typ, err = NewSliceType(tt.Elem())
@@ -397,7 +397,7 @@ func (v Value) Slice(beg, end int) Value {
 		}
 		base = v.val
 	case Slice:
-		typ = v.typ.(cffi_slice)
+		typ = v.typ.(*cffi_slice)
 		s := (*reflect.SliceHeader)(v.val)
 		base = unsafe.Pointer(s.Data)
 		cap = s.Cap
@@ -535,7 +535,13 @@ func ValueOf(i interface{}) Value {
 		}
 
 	case reflect.Ptr:
-		panic("unimplemented")
+		ct := ctype_from_gotype(rt)
+		v = New(ct)
+		enc := NewEncoder(v)
+		err := enc.Encode(rv.Interface())
+		if err != nil {
+			panic("ffi: " + err.Error())
+		}
 
 	case reflect.Struct:
 		ct := ctype_from_gotype(rt)
@@ -551,7 +557,7 @@ func ValueOf(i interface{}) Value {
 		}
 
 	case reflect.String:
-		panic("unimplemented")
+		panic("ffi.ValueOf: String unimplemented")
 
 	case reflect.Slice:
 		ct := ctype_from_gotype(rt)
