@@ -42,7 +42,10 @@ Limitations/TODO
 
 - it would be handy to also handle structs
 
-- better handling of types with no direct equivalent in go (short,void,...)
+- better handling of types with no direct equivalent in go
+  (short,void,...)
+
+- better handling of C_string and conversion to/from Go strings
 
 Documentation
 -------------
