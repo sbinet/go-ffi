@@ -566,8 +566,7 @@ func ctype_from_gotype(rt reflect.Type) Type {
 		if err != nil {
 			panic("ffi: " + err.Error())
 		}
-		cct := ct.(*cffi_array)
-		cct.cffi_type.rt = rt
+		ct.set_gotype(rt)
 		t = ct
 
 	case reflect.Ptr:
@@ -584,8 +583,7 @@ func ctype_from_gotype(rt reflect.Type) Type {
 		if err != nil {
 			panic("ffi: " + err.Error())
 		}
-		cct := ct.(*cffi_slice)
-		cct.cffi_type.rt = rt
+		ct.set_gotype(rt)
 		t = ct
 
 	case reflect.Struct:
@@ -601,8 +599,7 @@ func ctype_from_gotype(rt reflect.Type) Type {
 		if err != nil {
 			panic("ffi: " + err.Error())
 		}
-		cct := ct.(*cffi_struct)
-		cct.cffi_type.rt = rt
+		ct.set_gotype(rt)
 		t = ct
 
 	case reflect.String:
