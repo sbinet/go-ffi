@@ -152,11 +152,16 @@ type Type interface {
 	// NumField returns a struct type's field count.
 	// It panics if the type's Kind is not Struct.
 	NumField() int
+
+	// GoType returns the reflect.Type this ffi.Type is mirroring
+	// It returns nil if there is no such equivalent go type.
+	GoType() reflect.Type
 }
 
 type cffi_type struct {
 	n string
 	c *C.ffi_type
+	rt reflect.Type
 }
 
 func (t cffi_type) cptr() *C.ffi_type {
@@ -223,28 +228,32 @@ func (t cffi_type) Field(i int) StructField {
 	return tt.Field(i)
 }
 
+func (t cffi_type) GoType() reflect.Type {
+	return t.rt
+}
+
 var (
-	C_void       Type = cffi_type{"void", &C.ffi_type_void}
-	C_uchar           = cffi_type{"unsigned char", &C.ffi_type_uchar}
-	C_char            = cffi_type{"char", &C.ffi_type_schar}
-	C_ushort          = cffi_type{"unsigned short", &C.ffi_type_ushort}
-	C_short           = cffi_type{"short", &C.ffi_type_sshort}
-	C_uint            = cffi_type{"unsigned int", &C.ffi_type_uint}
-	C_int             = cffi_type{"int", &C.ffi_type_sint}
-	C_ulong           = cffi_type{"unsigned long", &C.ffi_type_ulong}
-	C_long            = cffi_type{"long", &C.ffi_type_slong}
-	C_uint8           = cffi_type{"uint8", &C.ffi_type_uint8}
-	C_int8            = cffi_type{"int8", &C.ffi_type_sint8}
-	C_uint16          = cffi_type{"uint16", &C.ffi_type_uint16}
-	C_int16           = cffi_type{"int16", &C.ffi_type_sint16}
-	C_uint32          = cffi_type{"uint32", &C.ffi_type_uint32}
-	C_int32           = cffi_type{"int32", &C.ffi_type_sint32}
-	C_uint64          = cffi_type{"uint64", &C.ffi_type_uint64}
-	C_int64           = cffi_type{"int64", &C.ffi_type_sint64}
-	C_float           = cffi_type{"float", &C.ffi_type_float}
-	C_double          = cffi_type{"double", &C.ffi_type_double}
-	C_longdouble      = cffi_type{"long double", &C.ffi_type_longdouble}
-	C_pointer         = cffi_type{"*", &C.ffi_type_pointer}
+	C_void       Type = cffi_type{"void", &C.ffi_type_void, nil}
+	C_uchar           = cffi_type{"unsigned char", &C.ffi_type_uchar, reflect.TypeOf(uint8(0))}
+	C_char            = cffi_type{"char", &C.ffi_type_schar, reflect.TypeOf(int8(0))}
+	C_ushort          = cffi_type{"unsigned short", &C.ffi_type_ushort, reflect.TypeOf(uint16(0))}
+	C_short           = cffi_type{"short", &C.ffi_type_sshort, reflect.TypeOf(int16(0))}
+	C_uint            = cffi_type{"unsigned int", &C.ffi_type_uint, reflect.TypeOf(uint(0))}
+	C_int             = cffi_type{"int", &C.ffi_type_sint, reflect.TypeOf(int(0))}
+	C_ulong           = cffi_type{"unsigned long", &C.ffi_type_ulong, reflect.TypeOf(uint64(0))}
+	C_long            = cffi_type{"long", &C.ffi_type_slong, reflect.TypeOf(int64(0))}
+	C_uint8           = cffi_type{"uint8", &C.ffi_type_uint8, reflect.TypeOf(uint8(0))}
+	C_int8            = cffi_type{"int8", &C.ffi_type_sint8, reflect.TypeOf(int8(0))}
+	C_uint16          = cffi_type{"uint16", &C.ffi_type_uint16, reflect.TypeOf(uint16(0))}
+	C_int16           = cffi_type{"int16", &C.ffi_type_sint16, reflect.TypeOf(int16(0))}
+	C_uint32          = cffi_type{"uint32", &C.ffi_type_uint32, reflect.TypeOf(uint32(0))}
+	C_int32           = cffi_type{"int32", &C.ffi_type_sint32, reflect.TypeOf(int32(0))}
+	C_uint64          = cffi_type{"uint64", &C.ffi_type_uint64, reflect.TypeOf(uint64(0))}
+	C_int64           = cffi_type{"int64", &C.ffi_type_sint64, reflect.TypeOf(int64(0))}
+	C_float           = cffi_type{"float", &C.ffi_type_float, reflect.TypeOf(float32(0.))}
+	C_double          = cffi_type{"double", &C.ffi_type_double, reflect.TypeOf(float64(0.))}
+	C_longdouble      = cffi_type{"long double", &C.ffi_type_longdouble, nil}
+	C_pointer         = cffi_type{"*", &C.ffi_type_pointer, reflect.TypeOf(nil)}
 )
 
 type StructField struct {
@@ -407,6 +416,9 @@ func NewPointerType(elmt Type) (Type, error) {
 		cffi_type: cffi_type{n: n, c: &c},
 		elem:      elmt,
 	}
+	if elmt.GoType() != nil {
+		t.cffi_type.rt = reflect.PtrTo(elmt.GoType())
+	}
 	t.cffi_type.c.size = C_pointer.c.size
 	t.cffi_type.c.alignment = C_pointer.c.alignment
 	var c_fields **C.ffi_type = nil
@@ -535,6 +547,8 @@ func ctype_from_gotype(rt reflect.Type) Type {
 		if err != nil {
 			panic("ffi: " + err.Error())
 		}
+		cct := ct.(cffi_array)
+		cct.cffi_type.rt = rt
 		t = ct
 
 	case reflect.Ptr:
@@ -551,6 +565,8 @@ func ctype_from_gotype(rt reflect.Type) Type {
 		if err != nil {
 			panic("ffi: " + err.Error())
 		}
+		cct := ct.(cffi_slice)
+		cct.cffi_type.rt = rt
 		t = ct
 
 	case reflect.Struct:
@@ -566,6 +582,8 @@ func ctype_from_gotype(rt reflect.Type) Type {
 		if err != nil {
 			panic("ffi: " + err.Error())
 		}
+		cct := ct.(cffi_struct)
+		cct.cffi_type.rt = rt
 		t = ct
 
 	case reflect.String:
@@ -577,51 +595,31 @@ func ctype_from_gotype(rt reflect.Type) Type {
 	return t
 }
 
-/*
-func ctype_from_ffi(t *C.ffi_type) Type {
-	switch t {
-	case &C.ffi_type_void:
-		return C_void
-	case &C.ffi_type_pointer:
-		return C_pointer
-	case &C.ffi_type_uint:
-		return C_uint
-	case &C.ffi_type_sint:
-		return C_int
-	case &C.ffi_type_uint8:
-		return C_uint8
-	case &C.ffi_type_sint8:
-		return C_int8
-	case &C.ffi_type_uint16:
-		return C_uint16
-	case &C.ffi_type_sint16:
-		return C_int16
-	case &C.ffi_type_uint32:
-		return C_uint32
-	case &C.ffi_type_sint32:
-		return C_int32
-	case &C.ffi_type_uint64:
-		return C_uint64
-	case &C.ffi_type_sint64:
-		return C_int64
-	case &C.ffi_type_ulong:
-		return C_ulong
-	case &C.ffi_type_slong:
-		return C_long
-	case &C.ffi_type_float:
-		return C_float
-	case &C.ffi_type_double:
-		return C_double
-	case &C.ffi_type_longdouble:
-		return C_longdouble
+// Associate creates a link b/w a ffi.Type and a reflect.Type to allow
+// automatic conversions b/w these types.
+func Associate(ct Type, rt reflect.Type) error {
+	crt := ct.GoType()
+	if crt != nil {
+		if crt != rt {
+			return fmt.Errorf("ffi.Associate: ffi.Type [%s] already associated to reflect.Type [%s]", ct.Name(), crt.Name())
+		}
+		return nil
 	}
 
-	if C._go_ffi_type_get_type(t) == C.FFI_TYPE_STRUCT {
-
+	switch ct := ct.(type) {
+	case cffi_type:
+		ct.rt = rt
+	case cffi_array:
+		ct.cffi_type.rt = rt
+	case cffi_slice:
+		ct.cffi_type.rt = rt
+	case cffi_struct:
+		ct.cffi_type.rt = rt
+	default:
+		panic(fmt.Sprintf("ffi.Associate: ffi.Type [%T] not handled!", ct))
 	}
-	panic("unreachable")
+	return nil
 }
-*/
 
 // PtrTo returns the pointer type with element t.
 // For example, if t represents type Foo, PtrTo(t) represents *Foo.
@@ -738,5 +736,11 @@ func init() {
 	init_type(C_pointer)
 
 }
+
+// make sure ffi_types satisfy ffi.Type interface
+var _ Type = (*cffi_type)(nil)
+var _ Type = (*cffi_array)(nil)
+var _ Type = (*cffi_slice)(nil)
+var _ Type = (*cffi_struct)(nil)
 
 // EOF
