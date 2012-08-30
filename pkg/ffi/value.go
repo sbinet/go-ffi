@@ -1,8 +1,7 @@
 package ffi
 
 import (
-	"bytes"
-	"io"
+	"fmt"
 	"reflect"
 	"runtime"
 	"unsafe"
@@ -220,6 +219,53 @@ func (v Value) Float() float64 {
 	panic(&ValueError{"ffi.Value.Float", k})
 }
 
+// GoValue returns v's value as a go reflect.Value if such a type exists.
+func (v Value) GoValue() reflect.Value {
+	rt := v.Type().GoType()
+	if rt == nil {
+		panic(fmt.Sprintf("ffi.Value.GoValue: value of type %s has no associated reflect.Type!", v.Type().Name()))
+	}
+	rv := reflect.New(rt).Elem()
+	switch k := rt.Kind(); k {
+	case reflect.Int, 
+		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		rv.SetInt(v.Int())
+
+	case reflect.Uint,
+		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		rv.SetUint(v.Uint())
+
+	case reflect.Float32, reflect.Float64:
+		rv.SetFloat(v.Float())
+
+	case reflect.Array:
+		for i := 0; i < rt.Len(); i++ {
+			rv.Index(i).Set(v.Index(i).GoValue())
+		}
+
+	case reflect.Ptr:
+		panic("ffi.Value.GoValue: Ptr not implemented")
+
+	case reflect.Slice:
+		rv = reflect.MakeSlice(rt, v.Len(), v.Cap())
+		for i := 0; i < v.Len(); i++ {
+			rv.Index(i).Set(v.Index(i).GoValue())
+		}
+
+	case reflect.Struct:
+		for i := 0; i < rt.NumField(); i++ {
+			rv.Field(i).Set(v.Field(i).GoValue())
+		}
+
+	case reflect.String:
+		panic("ffi.Value.GoValue: String not implemented")
+		
+	default:
+		panic("ffi.Value.GoValue: unhandled kind ["+rt.Kind().String()+"]")
+	}
+	return rv
+}
+
 // Index returns v's i'th element.
 // It panics if v's Kind is not Array or Slice or i is out of range.
 func (v Value) Index(i int) Value {
@@ -315,6 +361,64 @@ func (v Value) Len() int {
 func (v Value) NumField() int {
 	v.mustBe(Struct)
 	return v.typ.NumField()
+}
+
+// SetValue assigns x to the value v.
+// It panics if the type of x isn't binary compatible with the type of v.
+func (v Value) SetValue(x reflect.Value) {
+	rt := x.Type()
+	ct := TypeOf(x.Interface())
+	if !is_compatible(v.typ, ct) {
+		panic(fmt.Sprintf(
+			"ffi.Value.SetValue: go-value of type [%s] can not be assigned to ffi.Value of type [%s]",
+			rt.Name(), v.Type().Name()))
+	}
+
+	v.set_value(x)
+}
+
+// set_value assigns x to the value v.
+func (v Value) set_value(x reflect.Value) {
+	rt := x.Type()
+	switch k := rt.Kind(); k {
+	case reflect.Int, 
+		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(x.Int())
+
+	case reflect.Uint,
+		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(x.Uint())
+
+	case reflect.Float32, reflect.Float64:
+		v.SetFloat(x.Float())
+
+	case reflect.Array:
+		for i := 0; i < rt.Len(); i++ {
+			v.Index(i).set_value(x.Index(i))
+		}
+
+	case reflect.Ptr:
+		panic("ffi.Value.SetValue: Ptr not implemented")
+
+	case reflect.Slice:
+		if x.Len() > v.Cap() {
+			v, _, _ = grow_slice(v, x.Len())
+		}
+		for i := 0; i < x.Len(); i++ {
+			v.Index(i).set_value(x.Index(i))
+		}
+
+	case reflect.Struct:
+		for i := 0; i < rt.NumField(); i++ {
+			v.Field(i).set_value(x.Field(i))
+		}
+
+	case reflect.String:
+		panic("ffi.Value.SetValue: String not implemented")
+		
+	default:
+		panic("ffi.Value.SetValue: unhandled kind ["+rt.Kind().String()+"]")
+	}
 }
 
 // SetFloat sets v's underlying value to x.
@@ -641,28 +745,6 @@ func grow_slice(s Value, extra int) (Value, int, int) {
 	sx := (*[]byte)(unsafe.Pointer(s.val))
 	_ = copy(*tx, *sx)
 	return t, i0, i1
-}
-
-// NewReader returns an io.Reader from a value, reading from its binary storage
-func NewReader(v Value) io.Reader {
-	return bytes.NewReader(v.Buffer())
-}
-
-type wbuffer struct {
-	buf []byte
-	idx int
-}
-
-func (w *wbuffer) Write(p []byte) (n int, err error) {
-	n = copy(w.buf[w.idx:], p)
-	w.idx += n
-	return
-}
-
-// NewWriter returns an io.Writer from a value, writing into its binary storage
-func NewWriter(v Value) io.Writer {
-	buf := v.Buffer()
-	return &wbuffer{buf: buf, idx: 0}
 }
 
 // EOF

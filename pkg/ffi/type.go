@@ -639,6 +639,8 @@ func TypeOf(i interface{}) Type {
 	switch typ := i.(type) {
 	case reflect.Type:
 		return ctype_from_gotype(typ)
+	case reflect.Value:
+		return ctype_from_gotype(typ.Type())
 	default:
 		rt := reflect.TypeOf(i)
 		return ctype_from_gotype(rt)
