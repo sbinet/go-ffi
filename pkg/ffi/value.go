@@ -398,6 +398,7 @@ func (v Value) set_value(x reflect.Value) {
 		}
 
 	case reflect.Ptr:
+		//v.Elem().set_value(x.Elem())
 		panic("ffi.Value.SetValue: Ptr not implemented")
 
 	case reflect.Slice:
@@ -632,33 +633,17 @@ func ValueOf(i interface{}) Value {
 	case reflect.Array:
 		ct := ctype_from_gotype(rt)
 		v = New(ct)
-		enc := NewEncoder(v)
-		err := enc.Encode(rv.Interface())
-		if err != nil {
-			panic("ffi: " + err.Error())
-		}
+		v.SetValue(rv)
 
 	case reflect.Ptr:
 		ct := ctype_from_gotype(rt)
 		v = New(ct)
-		enc := NewEncoder(v)
-		err := enc.Encode(rv.Interface())
-		if err != nil {
-			panic("ffi: " + err.Error())
-		}
+		v.SetValue(rv)
 
 	case reflect.Struct:
 		ct := ctype_from_gotype(rt)
 		v = New(ct)
-		for i := 0; i < rt.NumField(); i++ {
-			cfield := v.Field(i)
-			goval := rv.Field(i)
-			enc := NewEncoder(cfield)
-			err := enc.Encode(goval.Interface())
-			if err != nil {
-				panic("ffi: " + err.Error())
-			}
-		}
+		v.SetValue(rv)
 
 	case reflect.String:
 		panic("ffi.ValueOf: String unimplemented")
@@ -666,11 +651,7 @@ func ValueOf(i interface{}) Value {
 	case reflect.Slice:
 		ct := ctype_from_gotype(rt)
 		v = MakeSlice(ct, rv.Len(), rv.Cap())
-		enc := NewEncoder(v)
-		err := enc.Encode(rv.Interface())
-		if err != nil {
-			panic("ffi: " + err.Error())
-		}
+		v.SetValue(rv)
 
 	default:
 		panic("unhandled kind [" + rt.Kind().String() + "]")
