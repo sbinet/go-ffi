@@ -256,7 +256,7 @@ func TestGetSetSliceValue(t *testing.T) {
 			t   ffi.Type
 			val interface{}
 		}{
-			{"uint8[]",  ffi.C_uint8,  make([]uint8, sz)},
+			{"uint8[]", ffi.C_uint8, make([]uint8, sz)},
 			{"uint16[]", ffi.C_uint16, make([]uint16, sz)},
 			{"uint32[]", ffi.C_uint32, make([]uint32, sz)},
 			{"uint64[]", ffi.C_uint64, make([]uint64, sz)},
@@ -350,35 +350,35 @@ func TestGetSetSliceValue(t *testing.T) {
 func TestValueOf(t *testing.T) {
 	{
 		const val = 42
-		for _,v := range []interface{}{
+		for _, v := range []interface{}{
 			int(val),
 			int8(val),
 			int16(val),
 			int32(val),
 			int64(val),
-		}{
+		} {
 			eq(t, int64(val), ffi.ValueOf(v).Int())
 		}
 	}
 
 	{
 		const val = 42
-		for _,v := range []interface{}{
+		for _, v := range []interface{}{
 			uint(val),
 			uint8(val),
 			uint16(val),
 			uint32(val),
 			uint64(val),
-		}{
+		} {
 			eq(t, uint64(val), ffi.ValueOf(v).Uint())
 		}
 	}
 	{
 		const val = 42.0
-		for _,v := range []interface{}{
+		for _, v := range []interface{}{
 			float32(val),
 			float64(val),
-		}{
+		} {
 			eq(t, float64(val), ffi.ValueOf(v).Float())
 		}
 	}
@@ -387,37 +387,36 @@ func TestValueOf(t *testing.T) {
 		ctyp, err := ffi.NewStructType(
 			"struct_ints",
 			[]ffi.Field{
-			{"F1", ffi.C_int8},
-			{"F2", ffi.C_int16},
-			{"F3", ffi.C_int32},
-			{"F4", ffi.C_int64},
-		})
+				{"F1", ffi.C_int8},
+				{"F2", ffi.C_int16},
+				{"F3", ffi.C_int32},
+				{"F4", ffi.C_int64},
+			})
 		if err != nil {
 			t.Errorf(err.Error())
 		}
 		cval := ffi.New(ctyp)
-		for i := 0; i<ctyp.NumField(); i++ {
+		for i := 0; i < ctyp.NumField(); i++ {
 			cval.Field(i).SetInt(int64(val))
 			eq(t, int64(val), cval.Field(i).Int())
 		}
-		gval := struct{
+		gval := struct {
 			F1 int8
 			F2 int16
 			F3 int32
 			F4 int64
-		}{val+1, val+1, val+1, val+1}
+		}{val + 1, val + 1, val + 1, val + 1}
 		rval := reflect.ValueOf(gval)
 		eq(t, rval.NumField(), cval.NumField())
-		for i := 0; i<ctyp.NumField(); i++ {
+		for i := 0; i < ctyp.NumField(); i++ {
 			eq(t, rval.Field(i).Int()-1, cval.Field(i).Int())
 		}
 		cval = ffi.ValueOf(gval)
-		for i := 0; i<ctyp.NumField(); i++ {
+		for i := 0; i < ctyp.NumField(); i++ {
 			eq(t, rval.Field(i).Int(), cval.Field(i).Int())
 		}
 	}
 }
-
 
 func TestEncoderDecoder(t *testing.T) {
 	arr_10, _ := ffi.NewArrayType(10, ffi.C_int32)
@@ -426,13 +425,13 @@ func TestEncoderDecoder(t *testing.T) {
 	const sz = 10
 	{
 		const val = 42
-		for _,v := range []interface{}{
+		for _, v := range []interface{}{
 			int(val),
 			int8(val),
 			int16(val),
 			int32(val),
 			int64(val),
-		}{
+		} {
 			ct := ffi.TypeOf(v)
 			cv := ffi.New(ct)
 			enc := ffi.NewEncoder(cv)
@@ -455,13 +454,13 @@ func TestEncoderDecoder(t *testing.T) {
 
 	{
 		const val = 42
-		for _,v := range []interface{}{
+		for _, v := range []interface{}{
 			uint(val),
 			uint8(val),
 			uint16(val),
 			uint32(val),
 			uint64(val),
-		}{
+		} {
 			ct := ffi.TypeOf(v)
 			cv := ffi.New(ct)
 			enc := ffi.NewEncoder(cv)
@@ -483,10 +482,10 @@ func TestEncoderDecoder(t *testing.T) {
 	}
 	{
 		const val = 42.0
-		for _,v := range []interface{}{
+		for _, v := range []interface{}{
 			float32(val),
 			float64(val),
-		}{
+		} {
 			ct := ffi.TypeOf(v)
 			cv := ffi.New(ct)
 			enc := ffi.NewEncoder(cv)
@@ -511,21 +510,21 @@ func TestEncoderDecoder(t *testing.T) {
 		ctyp, err := ffi.NewStructType(
 			"struct_ints",
 			[]ffi.Field{
-			{"F1", ffi.C_int8},
-			{"F2", ffi.C_int16},
-			{"F3", ffi.C_int32},
-			{"F4", ffi.C_int64},
-		})
+				{"F1", ffi.C_int8},
+				{"F2", ffi.C_int16},
+				{"F3", ffi.C_int32},
+				{"F4", ffi.C_int64},
+			})
 		if err != nil {
 			t.Errorf(err.Error())
 		}
 		cval := ffi.New(ctyp)
-		gval := struct{
+		gval := struct {
 			F1 int8
 			F2 int16
 			F3 int32
 			F4 int64
-		}{val+1, val+1, val+1, val+1}
+		}{val + 1, val + 1, val + 1, val + 1}
 		err = ffi.Associate(ctyp, reflect.TypeOf(gval))
 		if err != nil {
 			t.Errorf(err.Error())
@@ -538,7 +537,7 @@ func TestEncoderDecoder(t *testing.T) {
 		}
 
 		rval := reflect.ValueOf(gval)
-		for i := 0; i<ctyp.NumField(); i++ {
+		for i := 0; i < ctyp.NumField(); i++ {
 			eq(t, rval.Field(i).Int(), cval.Field(i).Int())
 		}
 
@@ -550,7 +549,7 @@ func TestEncoderDecoder(t *testing.T) {
 			t.Errorf(err.Error())
 		}
 		rval = vv.Elem()
-		for i := 0; i<ctyp.NumField(); i++ {
+		for i := 0; i < ctyp.NumField(); i++ {
 			eq(t, rval.Field(i).Int(), cval.Field(i).Int())
 		}
 	}
@@ -559,29 +558,29 @@ func TestEncoderDecoder(t *testing.T) {
 		ctyp, err := ffi.NewStructType(
 			"struct_ints_arr10",
 			[]ffi.Field{
-			{"F1", ffi.C_int8},
-			{"F2", ffi.C_int16},
-			{"A1", arr_10},
-			{"F3", ffi.C_int32},
-			{"F4", ffi.C_int64},
-		})
+				{"F1", ffi.C_int8},
+				{"F2", ffi.C_int16},
+				{"A1", arr_10},
+				{"F3", ffi.C_int32},
+				{"F4", ffi.C_int64},
+			})
 		if err != nil {
 			t.Errorf(err.Error())
 		}
 		cval := ffi.New(ctyp)
-		gval := struct{
+		gval := struct {
 			F1 int8
 			F2 int16
 			A1 [sz]int32
 			F3 int32
 			F4 int64
 		}{
-			val+1, val+1, 
+			val + 1, val + 1,
 			[sz]int32{
 				val, val, val, val, val,
 				val, val, val, val, val,
 			},
-			val+1, val+1,
+			val + 1, val + 1,
 		}
 		err = ffi.Associate(ctyp, reflect.TypeOf(gval))
 		if err != nil {
@@ -601,7 +600,7 @@ func TestEncoderDecoder(t *testing.T) {
 		rfield := cval.Field(2)
 		cfield := cval.Field(2)
 		eq(t, rfield.Len(), cfield.Len())
-		for i := 0; i<cfield.Len(); i++ {
+		for i := 0; i < cfield.Len(); i++ {
 			eq(t, rfield.Index(i).Int(), cfield.Index(i).Int())
 		}
 
@@ -620,7 +619,7 @@ func TestEncoderDecoder(t *testing.T) {
 		rfield = cval.Field(2)
 		cfield = cval.Field(2)
 		eq(t, rfield.Len(), cfield.Len())
-		for i := 0; i<cfield.Len(); i++ {
+		for i := 0; i < cfield.Len(); i++ {
 			eq(t, rfield.Index(i).Int(), cfield.Index(i).Int())
 		}
 	}
@@ -629,29 +628,29 @@ func TestEncoderDecoder(t *testing.T) {
 		ctyp, err := ffi.NewStructType(
 			"struct_ints_sli10",
 			[]ffi.Field{
-			{"F1", ffi.C_int8},
-			{"F2", ffi.C_int16},
-			{"S1", sli_10},
-			{"F3", ffi.C_int32},
-			{"F4", ffi.C_int64},
-		})
+				{"F1", ffi.C_int8},
+				{"F2", ffi.C_int16},
+				{"S1", sli_10},
+				{"F3", ffi.C_int32},
+				{"F4", ffi.C_int64},
+			})
 		if err != nil {
 			t.Errorf(err.Error())
 		}
 		cval := ffi.New(ctyp)
-		gval := struct{
+		gval := struct {
 			F1 int8
 			F2 int16
 			S1 []int32
 			F3 int32
 			F4 int64
 		}{
-			val+1, val+1, 
+			val + 1, val + 1,
 			[]int32{
 				val, val, val, val, val,
 				val, val, val, val, val,
 			},
-			val+1, val+1,
+			val + 1, val + 1,
 		}
 		err = ffi.Associate(ctyp, reflect.TypeOf(gval))
 		if err != nil {
@@ -671,7 +670,7 @@ func TestEncoderDecoder(t *testing.T) {
 		rfield := cval.Field(2)
 		cfield := cval.Field(2)
 		eq(t, rfield.Len(), cfield.Len())
-		for i := 0; i<cfield.Len(); i++ {
+		for i := 0; i < cfield.Len(); i++ {
 			eq(t, rfield.Index(i).Int(), cfield.Index(i).Int())
 		}
 
@@ -690,7 +689,7 @@ func TestEncoderDecoder(t *testing.T) {
 		rfield = cval.Field(2)
 		cfield = cval.Field(2)
 		eq(t, rfield.Len(), cfield.Len())
-		for i := 0; i<cfield.Len(); i++ {
+		for i := 0; i < cfield.Len(); i++ {
 			eq(t, rfield.Index(i).Int(), cfield.Index(i).Int())
 		}
 	}
@@ -826,4 +825,5 @@ func TestEncoderDecoder(t *testing.T) {
 		}
 	}
 }
+
 // EOF

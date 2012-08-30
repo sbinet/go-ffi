@@ -233,7 +233,7 @@ func TestNewSliceType(t *testing.T) {
 		}
 		eq(t, table.name, typ.Name())
 		eq(t, table.elem, typ.Elem())
-		eq(t, (2*ffi.C_int64.Size()) + ffi.C_pointer.Size(), typ.Size())
+		eq(t, (2*ffi.C_int64.Size())+ffi.C_pointer.Size(), typ.Size())
 		//eq(t, table.n, typ.Len())
 		eq(t, ffi.Slice, typ.Kind())
 	}

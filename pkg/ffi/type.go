@@ -162,8 +162,8 @@ type Type interface {
 }
 
 type cffi_type struct {
-	n string
-	c *C.ffi_type
+	n  string
+	c  *C.ffi_type
 	rt reflect.Type
 }
 
@@ -289,7 +289,6 @@ func (t *cffi_struct) set_gotype(rt reflect.Type) {
 	t.cffi_type.rt = rt
 }
 
-
 type Field struct {
 	Name string // Name is the field name
 	Type Type   // field type
@@ -302,7 +301,7 @@ func NewStructType(name string, fields []Field) (Type, error) {
 	if name == "" {
 		// anonymous type...
 		// generate some id.
-			name = fmt.Sprintf("_ffi_anon_type_%d", <-g_id_ch)
+		name = fmt.Sprintf("_ffi_anon_type_%d", <-g_id_ch)
 	}
 	if t := TypeByName(name); t != nil {
 		// check the definitions are the same
@@ -312,11 +311,11 @@ func NewStructType(name string, fields []Field) (Type, error) {
 		for i := range fields {
 			if fields[i].Name != t.Field(i).Name {
 				return nil, fmt.Errorf("ffi.NewStructType: inconsistent re-declaration of [%s] (field #%d name mismatch)", name, i)
-				
+
 			}
 			if fields[i].Type != t.Field(i).Type {
 				return nil, fmt.Errorf("ffi.NewStructType: inconsistent re-declaration of [%s] (field #%d type mismatch)", name, i)
-				
+
 			}
 		}
 		return t, nil
@@ -479,7 +478,7 @@ func NewSliceType(elmt Type) (Type, error) {
 
 	var c_fields **C.ffi_type = nil
 	var cargs = make([]*C.ffi_type, 3+1)
-	cargs[0] = elmt.cptr()     // ptr to C-array
+	cargs[0] = elmt.cptr()    // ptr to C-array
 	cargs[1] = C_int64.cptr() // len
 	cargs[2] = C_int64.cptr() // cap
 	cargs[3] = nil

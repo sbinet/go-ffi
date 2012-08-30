@@ -33,8 +33,8 @@ func (enc *Encoder) encode_value(v reflect.Value) (err error) {
 	enc.cval.set_value(v)
 	defer func() {
 		if r := recover(); r != nil {
-            err = fmt.Errorf("ffi.Encoder: %v", r)
-        }		
+			err = fmt.Errorf("ffi.Encoder: %v", r)
+		}
 	}()
 	return err
 }

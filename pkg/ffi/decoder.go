@@ -46,8 +46,8 @@ func (dec *Decoder) decode_value(v reflect.Value) (err error) {
 	v.Set(dec.cval.GoValue())
 	defer func() {
 		if r := recover(); r != nil {
-            err = fmt.Errorf("ffi.Decoder: %v", r)
-        }		
+			err = fmt.Errorf("ffi.Decoder: %v", r)
+		}
 	}()
 	return
 }

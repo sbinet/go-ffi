@@ -227,7 +227,7 @@ func (v Value) GoValue() reflect.Value {
 	}
 	rv := reflect.New(rt).Elem()
 	switch k := rt.Kind(); k {
-	case reflect.Int, 
+	case reflect.Int,
 		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		rv.SetInt(v.Int())
 
@@ -259,9 +259,9 @@ func (v Value) GoValue() reflect.Value {
 
 	case reflect.String:
 		panic("ffi.Value.GoValue: String not implemented")
-		
+
 	default:
-		panic("ffi.Value.GoValue: unhandled kind ["+rt.Kind().String()+"]")
+		panic("ffi.Value.GoValue: unhandled kind [" + rt.Kind().String() + "]")
 	}
 	return rv
 }
@@ -381,7 +381,7 @@ func (v Value) SetValue(x reflect.Value) {
 func (v Value) set_value(x reflect.Value) {
 	rt := x.Type()
 	switch k := rt.Kind(); k {
-	case reflect.Int, 
+	case reflect.Int,
 		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v.SetInt(x.Int())
 
@@ -416,9 +416,9 @@ func (v Value) set_value(x reflect.Value) {
 
 	case reflect.String:
 		panic("ffi.Value.SetValue: String not implemented")
-		
+
 	default:
-		panic("ffi.Value.SetValue: unhandled kind ["+rt.Kind().String()+"]")
+		panic("ffi.Value.SetValue: unhandled kind [" + rt.Kind().String() + "]")
 	}
 }
 
@@ -498,7 +498,7 @@ func (v Value) Slice(beg, end int) Value {
 		var err error
 		typ, err = NewSliceType(tt.Elem())
 		if err != nil {
-			panic("ffi.Value.Slice: "+err.Error())
+			panic("ffi.Value.Slice: " + err.Error())
 		}
 		base = v.val
 	case Slice:

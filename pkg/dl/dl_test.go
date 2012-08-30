@@ -23,7 +23,7 @@ func TestDlSymLibc(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	
+
 	_, err = lib.Symbol("puts")
 	if err != nil {
 		t.Errorf("%v", err)
@@ -52,7 +52,7 @@ func TestDlSymLibm(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	
+
 	_, err = lib.Symbol("fabs")
 	if err != nil {
 		t.Errorf("%v", err)

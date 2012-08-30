@@ -11,12 +11,13 @@ import (
 )
 
 type Flags int
+
 const (
-	Lazy Flags = C.RTLD_LAZY
-	Now Flags = C.RTLD_NOW
-	Global Flags = C.RTLD_GLOBAL
-	Local Flags = C.RTLD_LOCAL
-	NoLoad Flags = C.RTLD_NOLOAD
+	Lazy     Flags = C.RTLD_LAZY
+	Now      Flags = C.RTLD_NOW
+	Global   Flags = C.RTLD_GLOBAL
+	Local    Flags = C.RTLD_LOCAL
+	NoLoad   Flags = C.RTLD_NOLOAD
 	NoDelete Flags = C.RTLD_NODELETE
 	// First Flags = C.RTLD_FIRST
 )
@@ -53,7 +54,7 @@ func (h Handle) Addr() uintptr {
 func (h Handle) Symbol(symbol string) (uintptr, error) {
 	c_sym := C.CString(symbol)
 	defer C.free(unsafe.Pointer(c_sym))
-	
+
 	c_addr := C.dlsym(h.c, c_sym)
 	if c_addr == nil {
 		c_err := C.dlerror()
