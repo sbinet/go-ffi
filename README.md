@@ -6,16 +6,16 @@ The ``ffi`` package wraps the ``libffi`` ``C`` library (and ``dlopen/dlclose``) 
 Installation
 ------------
 
-``ffi`` is go-get-able::
+``ffi`` is go-get-able:
 
-  $ go get github.com/sbinet/go-ffi/pkg/ffi
-
+```
+$ go get github.com/sbinet/go-ffi/pkg/ffi
+```
 
 Example
 -------
 
-::
-
+``` go
   // dl-open a library: here, libm on macosx
   lib, err := ffi.NewLibrary("libm.dylib")
   handle_err(err)
@@ -30,6 +30,7 @@ Example
 
   err = lib.Close()
   handle_err(err)
+```
 
 Limitations/TODO
 -----------------
