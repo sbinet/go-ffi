@@ -16,20 +16,20 @@ Example
 -------
 
 ``` go
-  // dl-open a library: here, libm on macosx
-  lib, err := ffi.NewLibrary("libm.dylib")
-  handle_err(err)
+// dl-open a library: here, libm on macosx
+lib, err := ffi.NewLibrary("libm.dylib")
+handle_err(err)
 
-  // get a handle to 'cos', with the correct signature
-  cos, err := lib.Fct("cos", ffi.Double, []Type{ffi.Double})
-  handle_err(err)
+// get a handle to 'cos', with the correct signature
+cos, err := lib.Fct("cos", ffi.Double, []Type{ffi.Double})
+handle_err(err)
 
-  // call it
-  out := cos(0.).Float()
-  println("cos(0.)=", out)
+// call it
+out := cos(0.).Float()
+println("cos(0.)=", out)
 
-  err = lib.Close()
-  handle_err(err)
+err = lib.Close()
+handle_err(err)
 ```
 
 Limitations/TODO
