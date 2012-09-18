@@ -479,8 +479,8 @@ func NewSliceType(elmt Type) (Type, error) {
 	var c_fields **C.ffi_type = nil
 	var cargs = make([]*C.ffi_type, 3+1)
 	cargs[0] = elmt.cptr()    // ptr to C-array
-	cargs[1] = C_int64.cptr() // len
-	cargs[2] = C_int64.cptr() // cap
+	cargs[1] = C_int.cptr() // len -- FIXME: use int64 when go-1.1
+	cargs[2] = C_int.cptr() // cap -- FIXME: use int64 when go-1.1
 	cargs[3] = nil
 	c_fields = &cargs[0]
 	C._go_ffi_type_set_elements(t.cptr(), unsafe.Pointer(c_fields))
