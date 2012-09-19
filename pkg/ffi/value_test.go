@@ -1,6 +1,7 @@
 package ffi_test
 
 import (
+	//"fmt"
 	"reflect"
 	"testing"
 
@@ -243,7 +244,75 @@ func TestGetSetStructValue(t *testing.T) {
 	}
 	eq(t, int64(val), cval.FieldByName("F3").Int())
 	eq(t, uint64(val), cval.FieldByName("F4").Uint())
+}
 
+func TestGetSetStructWithSliceValue(t *testing.T) {
+
+	const val = 42
+	arr10, err := ffi.NewArrayType(10, ffi.C_int32)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	slityp, err := ffi.NewSliceType(ffi.C_int32)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	ctyp, err := ffi.NewStructType(
+		"struct_sswsv",
+		[]ffi.Field{
+			{"F1", ffi.C_uint16},
+			{"F2", arr10},
+			{"F3", ffi.C_int32},
+			{"F4", ffi.C_uint16},
+			{"F5", slityp},
+		})
+	eq(t, "struct_sswsv", ctyp.Name())
+	eq(t, ffi.Struct, ctyp.Kind())
+	eq(t, 5, ctyp.NumField())
+
+	cval := ffi.New(ctyp)
+	eq(t, ctyp.Kind(), cval.Kind())
+	eq(t, ctyp.NumField(), cval.NumField())
+	eq(t, uint64(0), cval.Field(0).Uint())
+	for i := 0; i < arr10.Len(); i++ {
+		eq(t, int64(0), cval.Field(1).Index(i).Int())
+	}
+	eq(t, int64(0), cval.Field(2).Int())
+	eq(t, uint64(0), cval.Field(3).Uint())
+	eq(t, int(0), cval.Field(4).Len())
+	eq(t, int(0), cval.Field(4).Len())
+
+	goval := struct{
+		F1 uint16
+		F2 [10]int32
+		F3 int32
+		F4 uint16
+		F5 []int32
+	}{
+		F1: val,
+		F2: [10]int32{val, val, val, val, val,
+			val,val,val,val,val},
+		F3: val,
+		F4: val,
+		F5: make([]int32, 2, 3),
+	}
+	goval.F5[0] = val
+	goval.F5[1] = val
+
+	cval.SetValue(reflect.ValueOf(goval))
+
+	eq(t, uint64(val), cval.Field(0).Uint())
+	for i := 0; i < arr10.Len(); i++ {
+		eq(t, int64(val), cval.Field(1).Index(i).Int())
+	}
+	eq(t, int64(val), cval.Field(2).Int())
+	eq(t, uint64(val), cval.Field(3).Uint())
+	eq(t, int(2), cval.Field(4).Len())
+	// FIXME: should we get the 'cap' from go ?
+	eq(t, int(/*3*/2), cval.Field(4).Cap())
+	eq(t, int64(val), cval.Field(4).Index(0).Int())
+	eq(t, int64(val), cval.Field(4).Index(1).Int())
 }
 
 func TestGetSetSliceValue(t *testing.T) {

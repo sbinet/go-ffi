@@ -244,6 +244,8 @@ func (v Value) GoValue() reflect.Value {
 		}
 
 	case reflect.Ptr:
+		//cval := v.Elem().GoValue().Addr()
+		//rv.Set(cval)
 		panic("ffi.Value.GoValue: Ptr not implemented")
 
 	case reflect.Slice:
@@ -363,6 +365,12 @@ func (v Value) NumField() int {
 	return v.typ.NumField()
 }
 
+func (v *Value) set_field(idx int, f Value) {
+	vv := v.Field(idx)
+	buf := vv.Buffer()
+	copy(buf, f.Buffer())
+}
+
 // SetValue assigns x to the value v.
 // It panics if the type of x isn't binary compatible with the type of v.
 func (v *Value) SetValue(x reflect.Value) {
@@ -399,7 +407,8 @@ func (v *Value) set_value(x reflect.Value) {
 		}
 
 	case reflect.Ptr:
-		//v.Elem().set_value(x.Elem())
+		//vv := v.Elem()
+		//vv.set_value(x.Elem())
 		panic("ffi.Value.SetValue: Ptr not implemented")
 
 	case reflect.Slice:
@@ -416,6 +425,7 @@ func (v *Value) set_value(x reflect.Value) {
 		for i := 0; i < rt.NumField(); i++ {
 			vv := v.Field(i)
 			vv.set_value(x.Field(i))
+			v.set_field(i, vv)
 		}
 
 	case reflect.String:
