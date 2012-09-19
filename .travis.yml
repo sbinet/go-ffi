@@ -4,7 +4,8 @@ before_install:
    - sudo apt-get update -qq
    - sudo apt-get install libffi-dev -qq
 
-script: go get ./pkg/... && go test ./pkg/...
+install: go get -d -v ./pkg/... && go build -v ./pkg/...
+script: go test ./pkg/...
 
 notifications:
   email:
