@@ -365,7 +365,7 @@ func (v Value) NumField() int {
 
 // SetValue assigns x to the value v.
 // It panics if the type of x isn't binary compatible with the type of v.
-func (v Value) SetValue(x reflect.Value) {
+func (v *Value) SetValue(x reflect.Value) {
 	rt := x.Type()
 	ct := TypeOf(x.Interface())
 	if !is_compatible(v.typ, ct) {
@@ -378,7 +378,7 @@ func (v Value) SetValue(x reflect.Value) {
 }
 
 // set_value assigns x to the value v.
-func (v Value) set_value(x reflect.Value) {
+func (v *Value) set_value(x reflect.Value) {
 	rt := x.Type()
 	switch k := rt.Kind(); k {
 	case reflect.Int,
@@ -394,7 +394,8 @@ func (v Value) set_value(x reflect.Value) {
 
 	case reflect.Array:
 		for i := 0; i < rt.Len(); i++ {
-			v.Index(i).set_value(x.Index(i))
+			vv := v.Index(i)
+			vv.set_value(x.Index(i))
 		}
 
 	case reflect.Ptr:
@@ -403,15 +404,18 @@ func (v Value) set_value(x reflect.Value) {
 
 	case reflect.Slice:
 		if x.Len() > v.Cap() {
-			v, _, _ = grow_slice(v, x.Len())
+			*v, _, _ = grow_slice(*v, x.Len())
 		}
+		v.SetLen(x.Len())
 		for i := 0; i < x.Len(); i++ {
-			v.Index(i).set_value(x.Index(i))
+			vv := v.Index(i)
+			vv.set_value(x.Index(i))
 		}
 
 	case reflect.Struct:
 		for i := 0; i < rt.NumField(); i++ {
-			v.Field(i).set_value(x.Field(i))
+			vv := v.Field(i)
+			vv.set_value(x.Field(i))
 		}
 
 	case reflect.String:
@@ -453,6 +457,17 @@ func (v Value) SetInt(x int64) {
 	case Int64:
 		*(*int64)(v.val) = x
 	}
+}
+// SetLen sets v's length to n.
+// It panics if v's Kind is not Slice or if n is negative or
+// greater than the capacity of the slice.
+func (v Value) SetLen(n int) {
+        v.mustBe(Slice)
+        s := (*reflect.SliceHeader)(v.val)
+        if n < 0 || n > int(s.Cap) {
+                panic("reflect: slice length out of range in SetLen")
+        }
+        s.Len = n
 }
 
 // SetPointer sets the unsafe.Pointer value v to x.
@@ -683,12 +698,6 @@ func MakeSlice(typ Type, len, cap int) Value {
 
 	// Reinterpret as *SliceHeader to edit.
 	s := (*reflect.SliceHeader)(unsafe.Pointer(&x))
-	arr_typ, err := NewArrayType(cap, typ.Elem())
-	if err != nil {
-		panic("ffi: " + err.Error())
-	}
-	arr_val := New(arr_typ)
-	s.Data = uintptr(arr_val.UnsafeAddr())
 	s.Len = len
 	s.Cap = cap
 

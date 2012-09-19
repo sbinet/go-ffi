@@ -345,6 +345,108 @@ func TestGetSetSliceValue(t *testing.T) {
 		}
 	}
 
+	// now test if slices can automatically grow...
+	{
+		const val = 42
+		for _, tt := range []struct {
+			n   string
+			t   ffi.Type
+			val interface{}
+		}{
+			{"uint8[]", ffi.C_uint8, make([]uint8, sz)},
+			{"uint16[]", ffi.C_uint16, make([]uint16, sz)},
+			{"uint32[]", ffi.C_uint32, make([]uint32, sz)},
+			{"uint64[]", ffi.C_uint64, make([]uint64, sz)},
+		} {
+			ctyp, err := ffi.NewSliceType(tt.t)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			cval := ffi.MakeSlice(ctyp, 0, 0)
+			eq(t, tt.n, cval.Type().Name())
+			eq(t, ctyp.Kind(), cval.Kind())
+			gtyp := reflect.TypeOf(tt.val)
+			gval := reflect.MakeSlice(gtyp, sz, sz)
+			eq(t, int(0), cval.Len())
+			cval.SetValue(gval) // <---------
+			eq(t, int(sz), cval.Len())
+			eq(t, gval.Len(), cval.Len())
+			for i := 0; i < gval.Len(); i++ {
+				eq(t, gval.Index(i).Uint(), cval.Index(i).Uint())
+				gval.Index(i).SetUint(val)
+				cval.Index(i).SetUint(val)
+				eq(t, gval.Index(i).Uint(), cval.Index(i).Uint())
+			}
+		}
+	}
+
+	{
+		const val = 42
+		for _, tt := range []struct {
+			n   string
+			t   ffi.Type
+			val interface{}
+		}{
+			{"int8[]", ffi.C_int8, make([]int8, sz)},
+			{"int16[]", ffi.C_int16, make([]int16, sz)},
+			{"int32[]", ffi.C_int32, make([]int32, sz)},
+			{"int64[]", ffi.C_int64, make([]int64, sz)},
+		} {
+			ctyp, err := ffi.NewSliceType(tt.t)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			cval := ffi.MakeSlice(ctyp, 0, 0)
+			eq(t, tt.n, cval.Type().Name())
+			eq(t, ctyp.Kind(), cval.Kind())
+			gtyp := reflect.TypeOf(tt.val)
+			gval := reflect.MakeSlice(gtyp, sz, sz)
+			eq(t, int(0), cval.Len())
+			cval.SetValue(gval) // <---------
+			eq(t, int(sz), cval.Len())
+			eq(t, gval.Len(), cval.Len())
+			for i := 0; i < gval.Len(); i++ {
+				eq(t, gval.Index(i).Int(), cval.Index(i).Int())
+				gval.Index(i).SetInt(val)
+				cval.Index(i).SetInt(val)
+				eq(t, gval.Index(i).Int(), cval.Index(i).Int())
+			}
+		}
+	}
+
+	{
+		const val = -66.2
+		for _, tt := range []struct {
+			n   string
+			t   ffi.Type
+			val interface{}
+		}{
+			{"float[]", ffi.C_float, make([]float32, sz)},
+			{"double[]", ffi.C_double, make([]float64, sz)},
+			// FIXME: go has no long double equivalent
+			//{"long double[]", ffi.C_longdouble, make([]float128, sz)}
+		} {
+			ctyp, err := ffi.NewSliceType(tt.t)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			cval := ffi.MakeSlice(ctyp, 0, 0)
+			eq(t, tt.n, cval.Type().Name())
+			eq(t, ctyp.Kind(), cval.Kind())
+			gtyp := reflect.TypeOf(tt.val)
+			gval := reflect.MakeSlice(gtyp, sz, sz)
+			eq(t, int(0), cval.Len())
+			cval.SetValue(gval) // <---------
+			eq(t, int(sz), cval.Len())
+			eq(t, gval.Len(), cval.Len())
+			for i := 0; i < gval.Len(); i++ {
+				eq(t, gval.Index(i).Float(), cval.Index(i).Float())
+				gval.Index(i).SetFloat(val)
+				cval.Index(i).SetFloat(val)
+				eq(t, gval.Index(i).Float(), cval.Index(i).Float())
+			}
+		}
+	}
 }
 
 func TestValueOf(t *testing.T) {

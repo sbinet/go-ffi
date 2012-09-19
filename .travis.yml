@@ -1,0 +1,12 @@
+language: go
+
+before_install:
+   - sudo apt-get update -qq
+   - sudo apt-get install libffi-dev -qq
+
+notifications:
+  email:
+    recipients:
+      - binet@cern.ch
+    on_success: always
+    on_failure: always
