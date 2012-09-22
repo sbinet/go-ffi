@@ -1,6 +1,8 @@
 go-ffi
 ======
 
+[![Build Status](https://secure.travis-ci.org/sbinet/go-ffi.png)](http://travis-ci.org/sbinet/go-ffi)
+
 The ``ffi`` package wraps the ``libffi`` ``C`` library (and ``dlopen/dlclose``) to provide an easy way to call arbitrary functions from ``Go``.
 
 Installation
