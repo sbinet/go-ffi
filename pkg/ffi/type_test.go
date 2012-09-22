@@ -37,7 +37,7 @@ func TestBuiltinTypes(t *testing.T) {
 			t.Errorf("expected [%s], got [%s]", table.n, table.t.Name())
 		}
 		if table.t.Size() != table.rt.Size() {
-			t.Errorf("expected [%s], got [%s]", table.t.Size(), table.rt.Size())
+			t.Errorf("expected [%d], got [%d] (type=%q)", table.t.Size(), table.rt.Size(), table.n)
 		}
 	}
 }
