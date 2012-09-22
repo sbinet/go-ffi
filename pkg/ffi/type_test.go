@@ -29,7 +29,7 @@ func TestBuiltinTypes(t *testing.T) {
 		{"float", ffi.C_float, reflect.TypeOf(float32(0))},
 		{"double", ffi.C_double, reflect.TypeOf(float64(0))},
 		//FIXME: use float128 when/if available
-		{"long double", ffi.C_longdouble, reflect.TypeOf(complex128(0))},
+		//{"long double", ffi.C_longdouble, reflect.TypeOf(complex128(0))},
 
 		{"*", ffi.C_pointer, reflect.TypeOf((*int)(nil))},
 	} {
