@@ -94,10 +94,16 @@ func TestNewStructType(t *testing.T) {
 			t.Errorf(err.Error())
 		}
 		eq(t, table.name, typ.Name())
-		eq(t, table.size, typ.Size())
+		//eq(t, table.size, typ.Size())
+		if table.size != typ.Size() {
+			t.Errorf("expected size [%d] got [%d] (type=%q)", table.size, typ.Size(), table.name)
+		}
 		eq(t, len(table.offsets), typ.NumField())
 		for i := 0; i < typ.NumField(); i++ {
-			eq(t, table.offsets[i], typ.Field(i).Offset)
+			if table.offsets[i] != typ.Field(i).Offset {
+				t.Errorf("type=%q field=%d: expected offset [%d]. got [%d]", table.name, i, table.offsets[i], typ.Field(i).Offset)
+			}
+			//eq(t, table.offsets[i], typ.Field(i).Offset)
 		}
 		eq(t, ffi.Struct, typ.Kind())
 	}
