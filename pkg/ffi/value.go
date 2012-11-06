@@ -375,7 +375,7 @@ func (v *Value) set_field(i int, f Value) {
 // It panics if the type of x isn't binary compatible with the type of v.
 func (v *Value) SetValue(x reflect.Value) {
 	rt := x.Type()
-	ct := TypeOf(x.Interface())
+	ct := TypeOf(rt)
 	if !is_compatible(v.typ, ct) {
 		panic(fmt.Sprintf(
 			"ffi.Value.SetValue: go-value of type [%s] can not be assigned to ffi.Value of type [%s]",
@@ -587,6 +587,30 @@ func (v Value) UnsafeAddr() uintptr {
 	return uintptr(v.val)
 }
 
+/*
+// UnsafeAddrs returns a slice of pointers to v's data (and its constituents if
+// v is composite (ie: a struct))
+func (v Value) UnsafeAddrs() []uintptr {
+	addrs := []uintptr{v.UnsafeAddr()}
+	switch k:=v.typ.Kind(); k {
+	case Array:
+		for i := 0; i < v.Len(); i++ {
+			addrs = append(addrs, v.Index(i).UnsafeAddrs()...)
+		}
+	case Slice:
+		for i := 0; i < v.Len(); i++ {
+			addrs = append(addrs, v.Index(i).UnsafeAddrs()...)
+		}
+	case Struct:
+		for i := 0; i < v.typ.NumField(); i++ {
+			addrs = append(addrs, v.Field(i).UnsafeAddrs()...)
+		}
+	case String:
+		panic("ffi.Value.UnsafeAddrs: String not implemented")
+	}
+	return addrs
+}
+*/
 // Indirect returns the value that v points to.
 // If v is a nil pointer, Indirect returns a zero Value.
 // If v is not a pointer, Indirect returns v.

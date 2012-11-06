@@ -283,7 +283,7 @@ func TestGetSetStructWithSliceValue(t *testing.T) {
 	eq(t, int(0), cval.Field(4).Len())
 	eq(t, int(0), cval.Field(4).Len())
 
-	goval := struct{
+	goval := struct {
 		F1 uint16
 		F2 [10]int32
 		F3 int32
@@ -292,13 +292,18 @@ func TestGetSetStructWithSliceValue(t *testing.T) {
 	}{
 		F1: val,
 		F2: [10]int32{val, val, val, val, val,
-			val,val,val,val,val},
+			val, val, val, val, val},
 		F3: val,
 		F4: val,
 		F5: make([]int32, 2, 3),
 	}
-	goval.F5[0] = val
-	goval.F5[1] = val
+	goval.F5[0] = val - 1
+	goval.F5[1] = val - 1
+
+	cval.SetValue(reflect.ValueOf(goval))
+
+	goval.F5 = goval.F5[:0]
+	goval.F5 = append(goval.F5, val, val)
 
 	cval.SetValue(reflect.ValueOf(goval))
 
@@ -310,9 +315,78 @@ func TestGetSetStructWithSliceValue(t *testing.T) {
 	eq(t, uint64(val), cval.Field(3).Uint())
 	eq(t, int(2), cval.Field(4).Len())
 	// FIXME: should we get the 'cap' from go ?
-	eq(t, int(/*3*/2), cval.Field(4).Cap())
+	eq(t, int( /*3*/ 2), cval.Field(4).Cap())
 	eq(t, int64(val), cval.Field(4).Index(0).Int())
 	eq(t, int64(val), cval.Field(4).Index(1).Int())
+}
+
+func TestGetSetStructWithStructWithSliceValue(t *testing.T) {
+
+	const val = 42
+	slityp, err := ffi.NewSliceType(ffi.C_int32)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	struct_ctyp, err := ffi.NewStructType(
+		"struct_sswsv_1",
+		[]ffi.Field{
+			{"F1", slityp},
+		})
+	ctyp, err := ffi.NewStructType(
+		"struct_sswswsv",
+		[]ffi.Field{
+			{"F1", struct_ctyp},
+			{"F2", struct_ctyp},
+		})
+	eq(t, "struct_sswswsv", ctyp.Name())
+	eq(t, ffi.Struct, ctyp.Kind())
+	eq(t, 2, ctyp.NumField())
+
+	type struct_sswsv_1 struct {
+		F1 []int32
+	}
+	goval := struct {
+		F1 struct_sswsv_1
+		F2 struct_sswsv_1
+	}{
+		F1: struct_sswsv_1{F1: []int32{val, val}},
+		F2: struct_sswsv_1{F1: []int32{-val, -val}},
+	}
+	{
+		cval := ffi.New(ctyp)
+		eq(t, ctyp.Kind(), cval.Kind())
+		eq(t, ctyp.NumField(), cval.NumField())
+		cval.SetValue(reflect.ValueOf(goval))
+
+		cf1f1 := cval.Field(0).Field(0)
+		eq(t, int(2), cf1f1.Len())
+		eq(t, int(2), cf1f1.Cap())
+		eq(t, int64(val), cf1f1.Index(0).Int())
+		eq(t, int64(val), cf1f1.Index(1).Int())
+
+		cf2f1 := cval.Field(1).Field(0)
+		eq(t, int(2), cf2f1.Len())
+		eq(t, int(2), cf2f1.Cap())
+		eq(t, int64(-val), cf2f1.Index(0).Int())
+		eq(t, int64(-val), cf2f1.Index(1).Int())
+	}
+	{
+		cval := ffi.ValueOf(goval)
+		eq(t, ctyp.Kind(), cval.Kind())
+		eq(t, ctyp.NumField(), cval.NumField())
+		cf1f1 := cval.Field(0).Field(0)
+		eq(t, int(2), cf1f1.Len())
+		eq(t, int(2), cf1f1.Cap())
+		eq(t, int64(val), cf1f1.Index(0).Int())
+		eq(t, int64(val), cf1f1.Index(1).Int())
+
+		cf2f1 := cval.Field(1).Field(0)
+		eq(t, int(2), cf2f1.Len())
+		eq(t, int(2), cf2f1.Cap())
+		eq(t, int64(-val), cf2f1.Index(0).Int())
+		eq(t, int64(-val), cf2f1.Index(1).Int())
+	}
 }
 
 func TestGetSetSliceValue(t *testing.T) {

@@ -478,9 +478,9 @@ func NewSliceType(elmt Type) (Type, error) {
 
 	var c_fields **C.ffi_type = nil
 	var cargs = make([]*C.ffi_type, 3+1)
-	cargs[0] = C_pointer.cptr()    // ptr to C-array
-	cargs[1] = C_int.cptr() // len -- FIXME: use int64 when go-1.1
-	cargs[2] = C_int.cptr() // cap -- FIXME: use int64 when go-1.1
+	cargs[0] = C_pointer.cptr() // ptr to C-array
+	cargs[1] = C_int.cptr()     // len -- FIXME: use int64 when go-1.1
+	cargs[2] = C_int.cptr()     // cap -- FIXME: use int64 when go-1.1
 	cargs[3] = nil
 	c_fields = &cargs[0]
 	C._go_ffi_type_set_elements(t.cptr(), unsafe.Pointer(c_fields))
@@ -512,8 +512,14 @@ func register_type(t Type) {
 	g_types[t.Name()] = t
 }
 
+var g_ctypes map[reflect.Type]Type = make(map[reflect.Type]Type)
+
 func ctype_from_gotype(rt reflect.Type) Type {
 	var t Type
+
+	if ct, ok := g_ctypes[rt]; ok {
+		return ct
+	}
 
 	switch rt.Kind() {
 	case reflect.Int:
@@ -600,6 +606,7 @@ func ctype_from_gotype(rt reflect.Type) Type {
 		panic("unhandled kind [" + rt.Kind().String() + "]")
 	}
 
+	g_ctypes[rt] = t
 	return t
 }
 
@@ -637,12 +644,20 @@ func PtrTo(t Type) Type {
 func TypeOf(i interface{}) Type {
 	switch typ := i.(type) {
 	case reflect.Type:
-		return ctype_from_gotype(typ)
+		//fmt.Printf("-->> %v...\n",typ.Name())
+		o := ctype_from_gotype(typ)
+		//fmt.Printf("-->> %v...[done]\n",typ.Name())
+		return o
 	case reflect.Value:
+		//fmt.Printf("--|> %v\n",typ.Type().Name())
 		return ctype_from_gotype(typ.Type())
 	default:
+		//fmt.Printf("--> %T ...0\n", i)
 		rt := reflect.TypeOf(i)
-		return ctype_from_gotype(rt)
+		//fmt.Printf("--> %T ...1\n", i)
+		o := ctype_from_gotype(rt)
+		//fmt.Printf("--> %T ...[done]\n", i)
+		return o
 	}
 	panic("unreachable")
 }
