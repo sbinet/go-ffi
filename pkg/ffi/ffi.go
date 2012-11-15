@@ -8,6 +8,7 @@ import "C"
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"unsafe"
 
 	"github.com/sbinet/go-ffi/pkg/dl"
@@ -236,8 +237,23 @@ type Library struct {
 	handle dl.Handle
 }
 
+func get_lib_arch_name(libname string) string {
+	fname := libname
+	if !strings.HasPrefix(libname, g_lib_prefix) {
+		fname = g_lib_prefix + libname
+	}
+	if !strings.HasSuffix(libname, g_lib_suffix) {
+		fname = fname + g_lib_suffix
+	}
+	return fname
+}
+
+// NewLibrary takes the name of the library and returns a handle towards it.
+// ex:
+//   lib, err := ffi.NewLibrary("m") // loads libm
 func NewLibrary(libname string) (lib Library, err error) {
-	lib.handle, err = dl.Open(libname, dl.Now)
+	fname := get_lib_arch_name(libname)
+	lib.handle, err = dl.Open(fname, dl.Now)
 	return
 }
 

@@ -1,6 +1,6 @@
 package ffi_test
 
-var libc_name = "libc.so.6"
-var libm_name = "libm.so"
+var libc_name = "c"
+var libm_name = "m"
 
 // EOF
