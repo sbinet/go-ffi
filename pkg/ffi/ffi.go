@@ -248,12 +248,10 @@ func get_lib_arch_name(libname string) string {
 	return fname
 }
 
-// NewLibrary takes the name of the library and returns a handle towards it.
-// ex:
-//   lib, err := ffi.NewLibrary("m") // loads libm
+// NewLibrary takes the library filename and returns a handle towards it.
 func NewLibrary(libname string) (lib Library, err error) {
-	fname := get_lib_arch_name(libname)
-	lib.handle, err = dl.Open(fname, dl.Now)
+	//libname = get_lib_arch_name(libname)
+	lib.handle, err = dl.Open(libname, dl.Now)
 	return
 }
 

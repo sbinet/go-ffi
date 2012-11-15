@@ -18,8 +18,8 @@ Example
 -------
 
 ``` go
-// dl-open a library: here, the math library on unix
-lib, err := ffi.NewLibrary("m")
+// dl-open a library: here, the math library on darwin
+lib, err := ffi.NewLibrary("libm.dylib")
 handle_err(err)
 
 // get a handle to 'cos', with the correct signature
