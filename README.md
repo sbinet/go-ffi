@@ -18,8 +18,8 @@ Example
 -------
 
 ``` go
-// dl-open a library: here, libm on macosx
-lib, err := ffi.NewLibrary("libm.dylib")
+// dl-open a library: here, the math library on unix
+lib, err := ffi.NewLibrary("m")
 handle_err(err)
 
 // get a handle to 'cos', with the correct signature
@@ -38,8 +38,6 @@ Limitations/TODO
 -----------------
 
 - no check is performed b/w what the user provides as a signature and the "real" signature
-
-- it would be handy to just provide the name of the library (ie: "m") instead of its filename (ie: "libm.dylib")
 
 - it would be handy to use some tool to automatically infer the "real" function signature
 
