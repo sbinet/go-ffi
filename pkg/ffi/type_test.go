@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"unsafe"
 
 	"github.com/sbinet/go-ffi/pkg/ffi"
 )
@@ -207,6 +208,8 @@ func TestNewArrayType(t *testing.T) {
 
 func TestNewSliceType(t *testing.T) {
 
+	capSize := 2 * unsafe.Sizeof(reflect.SliceHeader{}.Cap)
+
 	s_t, err := ffi.NewStructType("s_0", []ffi.Field{{"a", ffi.C_int32}})
 	if err != nil {
 		t.Errorf(err.Error())
@@ -242,7 +245,7 @@ func TestNewSliceType(t *testing.T) {
 		}
 		eq(t, table.name, typ.Name())
 		eq(t, table.elem, typ.Elem())
-		eq(t, (2*ffi.C_int.Size())+ffi.C_pointer.Size(), typ.Size())
+		eq(t, capSize+ffi.C_pointer.Size(), typ.Size())
 		//eq(t, table.n, typ.Len())
 		eq(t, ffi.Slice, typ.Kind())
 	}
