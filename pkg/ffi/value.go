@@ -715,7 +715,7 @@ func MakeSlice(typ Type, len, cap int) Value {
 	return Value{typ, unsafe.Pointer(&x)}
 }
 
-// grow_slice grows the slice s so that it can hold extra more values, 
+// grow_slice grows the slice s so that it can hold extra more values,
 // allocating more capacity if needed.
 // It also returns the old and new slice lengths.
 func grow_slice(s Value, extra int) (Value, int, int) {

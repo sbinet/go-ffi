@@ -283,7 +283,7 @@ func TestGetSetStructWithSliceValue(t *testing.T) {
 	eq(t, int(0), cval.Field(4).Len())
 	eq(t, int(0), cval.Field(4).Len())
 
-	goval := struct{
+	goval := struct {
 		F1 uint16
 		F2 [10]int32
 		F3 int32
@@ -292,7 +292,7 @@ func TestGetSetStructWithSliceValue(t *testing.T) {
 	}{
 		F1: val,
 		F2: [10]int32{val, val, val, val, val,
-			val,val,val,val,val},
+			val, val, val, val, val},
 		F3: val,
 		F4: val,
 		F5: make([]int32, 2, 3),
@@ -310,7 +310,7 @@ func TestGetSetStructWithSliceValue(t *testing.T) {
 	eq(t, uint64(val), cval.Field(3).Uint())
 	eq(t, int(2), cval.Field(4).Len())
 	// FIXME: should we get the 'cap' from go ?
-	eq(t, int(/*3*/2), cval.Field(4).Cap())
+	eq(t, int( /*3*/ 2), cval.Field(4).Cap())
 	eq(t, int64(val), cval.Field(4).Index(0).Int())
 	eq(t, int64(val), cval.Field(4).Index(1).Int())
 }

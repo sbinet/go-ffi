@@ -2,7 +2,7 @@ package dl
 
 // #include <stdlib.h>
 // #include <dlfcn.h>
-// #cgo LDFLAGS: -ldl   
+// #cgo LDFLAGS: -ldl
 import "C"
 
 import (
