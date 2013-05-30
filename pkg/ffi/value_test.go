@@ -997,4 +997,67 @@ func TestEncoderDecoder(t *testing.T) {
 	}
 }
 
+func TestAllocValueOf(t *testing.T) {
+	const nmax = 10000
+	type Event struct {
+		F   float64
+		Arr [2]float64
+		Sli []float64
+	}
+	type branch struct {
+		g      reflect.Value
+		c      ffi.Value
+		update func()
+	}
+	var evt Event
+	evt.Sli = make([]float64, 0)
+	set_branch := func(objaddr interface{}) *branch {
+		ptr := reflect.ValueOf(objaddr)
+		val := reflect.Indirect(ptr)
+		cval := ffi.ValueOf(val.Interface())
+		var br *branch
+		br = &branch{
+			g: val,
+			c: cval,
+			update: func() {
+				br.c.SetValue(br.g)
+			},
+		}
+		return br
+	}
+	br := set_branch(&evt)
+
+	for i := 0; i < nmax; i++ {
+		evt.F = float64(i + 1)
+		evt.Arr[0] = -evt.F
+		evt.Arr[1] = -2 * evt.F
+		evt.Sli = evt.Sli[:0]
+		evt.Sli = append(evt.Sli, -evt.F)
+		evt.Sli = append(evt.Sli, -2*evt.F)
+
+		br.update()
+		eq(t, evt.F, br.c.Field(0).Float())
+		eq(t, evt.Arr[0], br.c.Field(1).Index(0).Float())
+		eq(t, evt.Arr[1], br.c.Field(1).Index(1).Float())
+		eq(t, evt.Sli[0], br.c.Field(2).Index(0).Float())
+		eq(t, evt.Sli[1], br.c.Field(2).Index(1).Float())
+	}
+
+	for i := 0; i < nmax; i++ {
+		evt.F = float64(i + 1)
+		evt.Arr[0] = -evt.F
+		evt.Arr[1] = -2 * evt.F
+		evt.Sli[0] = -evt.F
+		evt.Sli[1] = -2 * evt.F
+
+		br.update()
+		eq(t, evt.F, br.c.Field(0).Float())
+		eq(t, evt.Arr[0], br.c.Field(1).Index(0).Float())
+		eq(t, evt.Arr[1], br.c.Field(1).Index(1).Float())
+		eq(t, evt.Sli[0], br.c.Field(2).Index(0).Float())
+		eq(t, evt.Sli[1], br.c.Field(2).Index(1).Float())
+	}
+
+}
+
 // EOF
