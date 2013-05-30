@@ -794,7 +794,7 @@ func TestEncoderDecoder(t *testing.T) {
 			eq(t, rfield.Index(i).Int(), cfield.Index(i).Int())
 		}
 	}
-	if true {
+	{
 		const val = 42
 		ctyp, err := ffi.NewStructType(
 			"struct_ints_sli10",
