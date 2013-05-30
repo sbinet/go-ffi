@@ -245,7 +245,12 @@ func (v Value) GoValue() reflect.Value {
 		panic("ffi.Value.GoValue: Ptr not implemented")
 
 	case reflect.Slice:
-		rv = reflect.MakeSlice(rt, v.Len(), v.Cap())
+		vlen := v.Len()
+		vcap := v.Cap()
+		if vlen > vcap {
+			vcap = vlen
+		}
+		rv = reflect.MakeSlice(rt, vlen, vcap)
 		for i := 0; i < v.Len(); i++ {
 			rv.Index(i).Set(v.Index(i).GoValue())
 		}
