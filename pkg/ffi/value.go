@@ -93,6 +93,7 @@ func NewAt(typ Type, p unsafe.Pointer) Value {
 	if err != nil {
 		return Value{}
 	}
+
 	v := Value{typ, p}
 	return v
 }
@@ -693,29 +694,29 @@ func ValueOf(i interface{}) Value {
 
 // MakeSlice creates a new zero-initialized slice value
 // for the specified slice type, length, and capacity.
-func MakeSlice(typ Type, len, cap int) Value {
+func MakeSlice(typ Type, vlen, vcap int) Value {
 	if typ.Kind() != Slice {
 		panic("ffi.MakeSlice of non-slice type")
 	}
-	if len < 0 {
+	if vlen < 0 {
 		panic("ffi.MakeSlice: negative len")
 	}
-	if cap < 0 {
+	if vcap < 0 {
 		panic("ffi.MakeSlice: negative cap")
 	}
-	if len > cap {
+	if vlen > vcap {
 		panic("ffi.MakeSlice: len > cap")
 	}
 
 	// Declare slice so that gc can see the base pointer in it.
-	slice_len := uintptr(len) * typ.Elem().Size()
-	slice_cap := uintptr(cap) * typ.Elem().Size()
+	slice_len := uintptr(vlen) * typ.Elem().Size()
+	slice_cap := uintptr(vcap) * typ.Elem().Size()
 	x := make([]byte, slice_len, slice_cap)
 
 	// Reinterpret as *SliceHeader to edit.
 	s := (*reflect.SliceHeader)(unsafe.Pointer(&x))
-	s.Len = len
-	s.Cap = cap
+	s.Len = vlen
+	s.Cap = vcap
 
 	return Value{typ, unsafe.Pointer(&x)}
 }

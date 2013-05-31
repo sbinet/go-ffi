@@ -1,7 +1,6 @@
 package ffi_test
 
 import (
-	//"fmt"
 	"reflect"
 	"testing"
 
