@@ -134,9 +134,15 @@ func (v Value) Cap() int {
 	k := v.Kind()
 	switch k {
 	case Array:
-		return v.typ.Len()
+		elem_sz := v.typ.Elem().Size()
+		return v.typ.Len() / int(elem_sz)
 	case Slice:
-		return (*reflect.SliceHeader)(v.val).Cap
+		//FIXME: make more robust
+		//NOTE: we assume the layout of our "slice header" is the same than
+		//      reflect.SliceHeader's...
+		vcap := (*reflect.SliceHeader)(v.val).Cap
+		elem_sz := v.typ.Elem().Size()
+		return vcap / int(elem_sz)
 	}
 	panic(&ValueError{"ffi.Value.Cap", k})
 }
@@ -353,7 +359,10 @@ func (v Value) Len() int {
 		//FIXME: make more robust
 		//NOTE: we assume the layout of our "slice header" is the same than
 		//      reflect.SliceHeader's...
-		return (*reflect.SliceHeader)(v.val).Len
+		vlen := (*reflect.SliceHeader)(v.val).Len
+		elem_sz := v.typ.Elem().Size()
+		//fmt.Printf("::: type[%v] vlen=%v elem_sz=%v\n", v.typ.Name(), vlen, elem_sz)
+		return vlen / int(elem_sz)
 	default:
 		panic(&ValueError{"ffi.Value.Len", k})
 	}
@@ -484,7 +493,9 @@ func (v Value) SetLen(n int) {
 	if n < 0 || n > int(s.Cap) {
 		panic("reflect: slice length out of range in SetLen")
 	}
-	s.Len = n
+	elem_sz := v.typ.Elem().Size()
+	s.Len = n * int(elem_sz)
+	//s.Cap = n * int(elem_sz)
 }
 
 // SetPointer sets the unsafe.Pointer value v to x.
@@ -714,9 +725,9 @@ func MakeSlice(typ Type, vlen, vcap int) Value {
 	x := make([]byte, slice_len, slice_cap)
 
 	// Reinterpret as *SliceHeader to edit.
-	s := (*reflect.SliceHeader)(unsafe.Pointer(&x))
-	s.Len = vlen
-	s.Cap = vcap
+	//s := (*reflect.SliceHeader)(unsafe.Pointer(&x))
+	//s.Len = vlen
+	//s.Cap = vcap
 
 	return Value{typ, unsafe.Pointer(&x)}
 }
