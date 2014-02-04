@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/sbinet/go-ffi/pkg/ffi"
+	ffi "github.com/sbinet/go-ffi"
 )
 
 func eq(t *testing.T, ref, chk interface{}) {

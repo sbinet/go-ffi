@@ -6,7 +6,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/sbinet/go-ffi/pkg/ffi"
+	ffi "github.com/sbinet/go-ffi"
 )
 
 func TestBuiltinTypes(t *testing.T) {

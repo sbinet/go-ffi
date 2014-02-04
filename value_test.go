@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sbinet/go-ffi/pkg/ffi"
+	ffi "github.com/sbinet/go-ffi"
 )
 
 func TestGetSetBuiltinValue(t *testing.T) {
