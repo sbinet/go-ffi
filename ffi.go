@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/sbinet/go-ffi/pkg/dl"
+	"github.com/sbinet/go-ffi/dl"
 )
 
 // Abi is the ffi abi of the local plateform

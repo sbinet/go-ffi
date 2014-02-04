@@ -12,7 +12,7 @@ Installation
 ``ffi`` is go-get-able:
 
 ```
-$ go get github.com/sbinet/go-ffi/pkg/ffi
+$ go get github.com/sbinet/go-ffi
 ```
 
 Example
