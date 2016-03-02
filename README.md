@@ -6,6 +6,8 @@ go-ffi
 
 The ``ffi`` package wraps the ``libffi`` ``C`` library (and ``dlopen/dlclose``) to provide an easy way to call arbitrary functions from ``Go``.
 
+**DEPRECATED** Please use `github.com/gonuts/ffi` instead.
+
 Installation
 ------------
 
